@@ -1,0 +1,53 @@
+abc: [ d, e, f ]
+one: 1
+
+vars: &vars
+  DOG: Roscoe
+  CAT: Apollo
+  BIRD: Girdy-Girl
+  MOUSE: null
+
+import_from:
+  <<: *vars
+  var_list: [ DOG, CAT ]
+  var_list_recurse:
+    - [ logical, TRUE_TEST ]
+    - [ multi, 'VAR.*' ]
+    - [ vars, 'DOG|CAT' ]
+
+array:
+  - item: one
+    texture: blobby
+  - item: two
+    texture: rough
+  - item: three
+    texture: fluffy
+
+logical:
+  TRUE_TEST: true
+  FALSE_TEST: false
+
+float:
+  short_pi: 3.14159
+  too_long: 3.141592653589793
+  not_float: 3
+
+multi:
+  VAR1: value1
+  VAR2: value2
+  VAR3: value3
+  VARNOPE: valuenope
+
+success_test: !ShellCommand
+  command: 'python < "$INPUT_PY" ; rm -f "$INPUT_PY"'
+  files:
+    - name: input.py
+      content: |
+        x=1+1
+        print('success_test: x = '+str(x))
+        exit(0 if x==0 else 1)
+  env: { INPUT_PY: input.py }
+
+failure_test: !ShellCommand
+  command: [ '/bin/false' ]
+

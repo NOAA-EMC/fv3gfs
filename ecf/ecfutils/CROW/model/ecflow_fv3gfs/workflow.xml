@@ -1,0 +1,872 @@
+<?xml version="1.0"?>
+<!DOCTYPE workflow [
+  <!ENTITY LOG_DIR "/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/log">
+  <!ENTITY TASK_THROTTLE "5">
+  <!ENTITY QUEUE "debug">
+  <!ENTITY QUEUESERV "dev_transfer">
+  <!ENTITY PROJECT "GFS-T2O">
+  <!ENTITY CYCLE_THROTTLE "2">
+  <!ENTITY MAX_TRIES "1">
+]>
+<workflow realtime="F"
+          cyclethrottle="&CYCLE_THROTTLE;"
+          scheduler="lsf"
+          taskthrottle="&TASK_THROTTLE;" >
+  <log><cyclestr>&LOG_DIR;/rocoto_@Y@m@d@H.log</cyclestr></log>
+  <cycledef>201801010000 201801011800 06:00:00</cycledef>
+
+  <metatask name="gdas">
+    <var name="dummy_var_2">DUMMY_VALUE</var>
+    <task name="gdas.jgdas_verfrad" maxtries="1">
+      <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/JGDAS_VERFRAD</command>
+      <queue>&QUEUE;</queue>
+      <account>&PROJECT;</account>
+      <jobname>gdas.jgdas_verfrad</jobname>
+      <join><cyclestr>&LOG_DIR;/gdas.jgdas_verfrad_t@Hz.log</cyclestr></join>
+      
+      <memory>300M</memory>
+      <nodes>1:ppn=24</nodes>
+      <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+      <dependency>
+        <metataskdep metatask="gdas.enkf"/>
+      </dependency>
+    </task>
+    <task name="gdas.jgdas_vminmon" maxtries="1">
+      <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/JGDAS_VMINMON</command>
+      <queue>&QUEUE;</queue>
+      <account>&PROJECT;</account>
+      <jobname>gdas.jgdas_vminmon</jobname>
+      <join><cyclestr>&LOG_DIR;/gdas.jgdas_vminmon_t@Hz.log</cyclestr></join>
+      
+      <memory>300M</memory>
+      <nodes>1:ppn=24</nodes>
+      <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+      <dependency>
+        <taskdep task="gdas.jgdas_analysis"/>
+      </dependency>
+    </task>
+    <metatask name="gdas.dump">
+      <var name="dummy_var_3">DUMMY_VALUE</var>
+      <task name="gdas.dump.jgdas_ics" maxtries="1">
+        <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/JGDAS_ICS</command>
+        <queue>&QUEUE;</queue>
+        <account>&PROJECT;</account>
+        <jobname>gdas.dump.jgdas_ics</jobname>
+        <join><cyclestr>&LOG_DIR;/gdas.dump.jgdas_ics_t@Hz.log</cyclestr></join>
+        
+        <memory>300M</memory>
+        <nodes>1:ppn=24</nodes>
+        <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+        <!-- no dependencies -->
+      </task>
+      <task name="gdas.dump.jgdas_tropcy_qc_reloc" maxtries="1">
+        <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/JGDAS_TROPCY_QC_RELOC</command>
+        <queue>&QUEUE;</queue>
+        <account>&PROJECT;</account>
+        <jobname>gdas.dump.jgdas_tropcy_qc_reloc</jobname>
+        <join><cyclestr>&LOG_DIR;/gdas.dump.jgdas_tropcy_qc_reloc_t@Hz.log</cyclestr></join>
+        
+        <memory>300M</memory>
+        <nodes>1:ppn=24</nodes>
+        <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+        <dependency>
+          <taskdep task="gdas.dump.jgdas_dump"/>
+        </dependency>
+      </task>
+      <task name="gdas.dump.jgdas_dump" maxtries="1">
+        <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/JGDAS_DUMP</command>
+        <queue>&QUEUE;</queue>
+        <account>&PROJECT;</account>
+        <jobname>gdas.dump.jgdas_dump</jobname>
+        <join><cyclestr>&LOG_DIR;/gdas.dump.jgdas_dump_t@Hz.log</cyclestr></join>
+        
+        <memory>300M</memory>
+        <nodes>1:ppn=24</nodes>
+        <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+        <!-- no dependencies -->
+      </task>
+    </metatask>
+    <metatask name="gdas.prep">
+      <var name="dummy_var_4">DUMMY_VALUE</var>
+      <task name="gdas.prep.jgdas_emcsfc_sfc_prep" maxtries="1">
+        <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/JGDAS_EMCSFC_SFC_PREP</command>
+        <queue>&QUEUE;</queue>
+        <account>&PROJECT;</account>
+        <jobname>gdas.prep.jgdas_emcsfc_sfc_prep</jobname>
+        <join><cyclestr>&LOG_DIR;/gdas.prep.jgdas_emcsfc_sfc_prep_t@Hz.log</cyclestr></join>
+        
+        <memory>300M</memory>
+        <nodes>1:ppn=24</nodes>
+        <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+        <dependency>
+          <true></true><!-- data dependency with no file -->
+        </dependency>
+      </task>
+      <task name="gdas.prep.jgdas_prep" maxtries="1">
+        <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/JGDAS_PREP</command>
+        <queue>&QUEUE;</queue>
+        <account>&PROJECT;</account>
+        <jobname>gdas.prep.jgdas_prep</jobname>
+        <join><cyclestr>&LOG_DIR;/gdas.prep.jgdas_prep_t@Hz.log</cyclestr></join>
+        
+        <walltime>0:02:00</walltime>
+        <memory>3072M</memory>
+        <nodes>3:ppn=24</nodes>
+        <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+        <dependency>
+          <and>
+            <taskdep task="gdas.dump.jgdas_dump"/>
+            <taskdep task="gdas.dump.jgdas_tropcy_qc_reloc"/>
+          </and>
+        </dependency>
+      </task>
+      <task name="gdas.prep.jgdas_prep_post" maxtries="1">
+        <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/JGDAS_PREP_POST</command>
+        <queue>&QUEUE;</queue>
+        <account>&PROJECT;</account>
+        <jobname>gdas.prep.jgdas_prep_post</jobname>
+        <join><cyclestr>&LOG_DIR;/gdas.prep.jgdas_prep_post_t@Hz.log</cyclestr></join>
+        
+        <memory>300M</memory>
+        <nodes>1:ppn=24</nodes>
+        <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+        <dependency>
+          <taskdep task="gdas.jgdas_analysis"/>
+        </dependency>
+      </task>
+    </metatask>
+    <metatask name="gdas.enkf">
+      <var name="dummy_var_5">DUMMY_VALUE</var>
+      <task name="gdas.enkf.jgdas_enkf_select_obs" maxtries="1">
+        <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/JGDAS_ENKF_SELECT_OBS</command>
+        <queue>&QUEUE;</queue>
+        <account>&PROJECT;</account>
+        <jobname>gdas.enkf.jgdas_enkf_select_obs</jobname>
+        <join><cyclestr>&LOG_DIR;/gdas.enkf.jgdas_enkf_select_obs_t@Hz.log</cyclestr></join>
+        
+        <walltime>0:02:00</walltime>
+        <memory>3072M</memory>
+        <nodes>12:ppn=24</nodes>
+        <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+        <dependency>
+          <and>
+            <taskdep task="gdas.prep.jgdas_prep"/>
+            <taskdep task="gdas.enkf.jgdas_enkf_post" cycle_offset="-06:00:00"/>
+          </and>
+        </dependency>
+      </task>
+      <metatask name="gdas.enkf.innovate">
+        <var name="dummy_var_6">DUMMY_VALUE</var>
+        <task name="gdas.enkf.innovate.grp1" maxtries="1">
+          <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/jgdas_innovate</command>
+          <queue>&QUEUE;</queue>
+          <account>&PROJECT;</account>
+          <jobname>gdas.enkf.innovate.grp1</jobname>
+          <join><cyclestr>&LOG_DIR;/gdas.enkf.innovate.grp1_t@Hz.log</cyclestr></join>
+          
+          <walltime>0:02:00</walltime>
+          <memory>3072M</memory>
+          <nodes>12:ppn=24</nodes>
+          <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+          <dependency>
+            <taskdep task="gdas.enkf.jgdas_enkf_select_obs"/>
+          </dependency>
+        </task>
+        <task name="gdas.enkf.innovate.grp2" maxtries="1">
+          <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/jgdas_innovate</command>
+          <queue>&QUEUE;</queue>
+          <account>&PROJECT;</account>
+          <jobname>gdas.enkf.innovate.grp2</jobname>
+          <join><cyclestr>&LOG_DIR;/gdas.enkf.innovate.grp2_t@Hz.log</cyclestr></join>
+          
+          <walltime>0:02:00</walltime>
+          <memory>3072M</memory>
+          <nodes>12:ppn=24</nodes>
+          <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+          <dependency>
+            <taskdep task="gdas.enkf.jgdas_enkf_select_obs"/>
+          </dependency>
+        </task>
+        <task name="gdas.enkf.innovate.grp3" maxtries="1">
+          <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/jgdas_innovate</command>
+          <queue>&QUEUE;</queue>
+          <account>&PROJECT;</account>
+          <jobname>gdas.enkf.innovate.grp3</jobname>
+          <join><cyclestr>&LOG_DIR;/gdas.enkf.innovate.grp3_t@Hz.log</cyclestr></join>
+          
+          <walltime>0:02:00</walltime>
+          <memory>3072M</memory>
+          <nodes>12:ppn=24</nodes>
+          <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+          <dependency>
+            <taskdep task="gdas.enkf.jgdas_enkf_select_obs"/>
+          </dependency>
+        </task>
+        <task name="gdas.enkf.innovate.grp4" maxtries="1">
+          <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/jgdas_innovate</command>
+          <queue>&QUEUE;</queue>
+          <account>&PROJECT;</account>
+          <jobname>gdas.enkf.innovate.grp4</jobname>
+          <join><cyclestr>&LOG_DIR;/gdas.enkf.innovate.grp4_t@Hz.log</cyclestr></join>
+          
+          <walltime>0:02:00</walltime>
+          <memory>3072M</memory>
+          <nodes>12:ppn=24</nodes>
+          <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+          <dependency>
+            <taskdep task="gdas.enkf.jgdas_enkf_select_obs"/>
+          </dependency>
+        </task>
+        <task name="gdas.enkf.innovate.grp5" maxtries="1">
+          <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/jgdas_innovate</command>
+          <queue>&QUEUE;</queue>
+          <account>&PROJECT;</account>
+          <jobname>gdas.enkf.innovate.grp5</jobname>
+          <join><cyclestr>&LOG_DIR;/gdas.enkf.innovate.grp5_t@Hz.log</cyclestr></join>
+          
+          <walltime>0:02:00</walltime>
+          <memory>3072M</memory>
+          <nodes>12:ppn=24</nodes>
+          <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+          <dependency>
+            <taskdep task="gdas.enkf.jgdas_enkf_select_obs"/>
+          </dependency>
+        </task>
+        <task name="gdas.enkf.innovate.grp6" maxtries="1">
+          <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/jgdas_innovate</command>
+          <queue>&QUEUE;</queue>
+          <account>&PROJECT;</account>
+          <jobname>gdas.enkf.innovate.grp6</jobname>
+          <join><cyclestr>&LOG_DIR;/gdas.enkf.innovate.grp6_t@Hz.log</cyclestr></join>
+          
+          <walltime>0:02:00</walltime>
+          <memory>3072M</memory>
+          <nodes>12:ppn=24</nodes>
+          <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+          <dependency>
+            <taskdep task="gdas.enkf.jgdas_enkf_select_obs"/>
+          </dependency>
+        </task>
+        <task name="gdas.enkf.innovate.grp7" maxtries="1">
+          <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/jgdas_innovate</command>
+          <queue>&QUEUE;</queue>
+          <account>&PROJECT;</account>
+          <jobname>gdas.enkf.innovate.grp7</jobname>
+          <join><cyclestr>&LOG_DIR;/gdas.enkf.innovate.grp7_t@Hz.log</cyclestr></join>
+          
+          <walltime>0:02:00</walltime>
+          <memory>3072M</memory>
+          <nodes>12:ppn=24</nodes>
+          <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+          <dependency>
+            <taskdep task="gdas.enkf.jgdas_enkf_select_obs"/>
+          </dependency>
+        </task>
+        <task name="gdas.enkf.innovate.grp8" maxtries="1">
+          <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/jgdas_innovate</command>
+          <queue>&QUEUE;</queue>
+          <account>&PROJECT;</account>
+          <jobname>gdas.enkf.innovate.grp8</jobname>
+          <join><cyclestr>&LOG_DIR;/gdas.enkf.innovate.grp8_t@Hz.log</cyclestr></join>
+          
+          <walltime>0:02:00</walltime>
+          <memory>3072M</memory>
+          <nodes>12:ppn=24</nodes>
+          <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+          <dependency>
+            <taskdep task="gdas.enkf.jgdas_enkf_select_obs"/>
+          </dependency>
+        </task>
+      </metatask>
+      <task name="gdas.enkf.jgdas_enkf_update" maxtries="1">
+        <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/JGDAS_ENKF_UPDATE</command>
+        <queue>&QUEUE;</queue>
+        <account>&PROJECT;</account>
+        <jobname>gdas.enkf.jgdas_enkf_update</jobname>
+        <join><cyclestr>&LOG_DIR;/gdas.enkf.jgdas_enkf_update_t@Hz.log</cyclestr></join>
+        
+        <walltime>0:02:00</walltime>
+        <memory>3072M</memory>
+        <nodes>40:ppn=24</nodes>
+        <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+        <dependency>
+          <metataskdep metatask="gdas.enkf.innovate"/>
+        </dependency>
+      </task>
+      <task name="gdas.enkf.jgdas_enkf_inflate_recenter" maxtries="1">
+        <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/JGDAS_ENKF_INFLATE_RECENTER</command>
+        <queue>&QUEUE;</queue>
+        <account>&PROJECT;</account>
+        <jobname>gdas.enkf.jgdas_enkf_inflate_recenter</jobname>
+        <join><cyclestr>&LOG_DIR;/gdas.enkf.jgdas_enkf_inflate_recenter_t@Hz.log</cyclestr></join>
+        
+        <walltime>0:02:00</walltime>
+        <memory>3072M</memory>
+        <nodes>20:ppn=24</nodes>
+        <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+        <dependency>
+          <and>
+            <taskdep task="gdas.enkf.jgdas_enkf_update"/>
+            <taskdep task="gdas.jgdas_analysis"/>
+          </and>
+        </dependency>
+      </task>
+      <metatask name="gdas.enkf.forecast">
+        <var name="dummy_var_7">DUMMY_VALUE</var>
+        <task name="gdas.enkf.forecast.grp1" maxtries="1">
+          <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/JGLOBAL_FORECAST</command>
+          <queue>&QUEUE;</queue>
+          <account>&PROJECT;</account>
+          <jobname>gdas.enkf.forecast.grp1</jobname>
+          <join><cyclestr>&LOG_DIR;/gdas.enkf.forecast.grp1_t@Hz.log</cyclestr></join>
+          
+          <walltime>0:02:00</walltime>
+          <memory>254M</memory>
+          <nodes>64:ppn=24</nodes>
+          <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+          <dependency>
+            <taskdep task="gdas.enkf.jgdas_enkf_inflate_recenter"/>
+          </dependency>
+        </task>
+        <task name="gdas.enkf.forecast.grp2" maxtries="1">
+          <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/JGLOBAL_FORECAST</command>
+          <queue>&QUEUE;</queue>
+          <account>&PROJECT;</account>
+          <jobname>gdas.enkf.forecast.grp2</jobname>
+          <join><cyclestr>&LOG_DIR;/gdas.enkf.forecast.grp2_t@Hz.log</cyclestr></join>
+          
+          <walltime>0:02:00</walltime>
+          <memory>254M</memory>
+          <nodes>64:ppn=24</nodes>
+          <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+          <dependency>
+            <taskdep task="gdas.enkf.jgdas_enkf_inflate_recenter"/>
+          </dependency>
+        </task>
+        <task name="gdas.enkf.forecast.grp3" maxtries="1">
+          <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/JGLOBAL_FORECAST</command>
+          <queue>&QUEUE;</queue>
+          <account>&PROJECT;</account>
+          <jobname>gdas.enkf.forecast.grp3</jobname>
+          <join><cyclestr>&LOG_DIR;/gdas.enkf.forecast.grp3_t@Hz.log</cyclestr></join>
+          
+          <walltime>0:02:00</walltime>
+          <memory>254M</memory>
+          <nodes>64:ppn=24</nodes>
+          <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+          <dependency>
+            <taskdep task="gdas.enkf.jgdas_enkf_inflate_recenter"/>
+          </dependency>
+        </task>
+        <task name="gdas.enkf.forecast.grp4" maxtries="1">
+          <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/JGLOBAL_FORECAST</command>
+          <queue>&QUEUE;</queue>
+          <account>&PROJECT;</account>
+          <jobname>gdas.enkf.forecast.grp4</jobname>
+          <join><cyclestr>&LOG_DIR;/gdas.enkf.forecast.grp4_t@Hz.log</cyclestr></join>
+          
+          <walltime>0:02:00</walltime>
+          <memory>254M</memory>
+          <nodes>64:ppn=24</nodes>
+          <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+          <dependency>
+            <taskdep task="gdas.enkf.jgdas_enkf_inflate_recenter"/>
+          </dependency>
+        </task>
+        <task name="gdas.enkf.forecast.grp5" maxtries="1">
+          <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/JGLOBAL_FORECAST</command>
+          <queue>&QUEUE;</queue>
+          <account>&PROJECT;</account>
+          <jobname>gdas.enkf.forecast.grp5</jobname>
+          <join><cyclestr>&LOG_DIR;/gdas.enkf.forecast.grp5_t@Hz.log</cyclestr></join>
+          
+          <walltime>0:02:00</walltime>
+          <memory>254M</memory>
+          <nodes>64:ppn=24</nodes>
+          <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+          <dependency>
+            <taskdep task="gdas.enkf.jgdas_enkf_inflate_recenter"/>
+          </dependency>
+        </task>
+        <task name="gdas.enkf.forecast.grp6" maxtries="1">
+          <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/JGLOBAL_FORECAST</command>
+          <queue>&QUEUE;</queue>
+          <account>&PROJECT;</account>
+          <jobname>gdas.enkf.forecast.grp6</jobname>
+          <join><cyclestr>&LOG_DIR;/gdas.enkf.forecast.grp6_t@Hz.log</cyclestr></join>
+          
+          <walltime>0:02:00</walltime>
+          <memory>254M</memory>
+          <nodes>64:ppn=24</nodes>
+          <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+          <dependency>
+            <taskdep task="gdas.enkf.jgdas_enkf_inflate_recenter"/>
+          </dependency>
+        </task>
+        <task name="gdas.enkf.forecast.grp7" maxtries="1">
+          <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/JGLOBAL_FORECAST</command>
+          <queue>&QUEUE;</queue>
+          <account>&PROJECT;</account>
+          <jobname>gdas.enkf.forecast.grp7</jobname>
+          <join><cyclestr>&LOG_DIR;/gdas.enkf.forecast.grp7_t@Hz.log</cyclestr></join>
+          
+          <walltime>0:02:00</walltime>
+          <memory>254M</memory>
+          <nodes>64:ppn=24</nodes>
+          <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+          <dependency>
+            <taskdep task="gdas.enkf.jgdas_enkf_inflate_recenter"/>
+          </dependency>
+        </task>
+        <task name="gdas.enkf.forecast.grp8" maxtries="1">
+          <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/JGLOBAL_FORECAST</command>
+          <queue>&QUEUE;</queue>
+          <account>&PROJECT;</account>
+          <jobname>gdas.enkf.forecast.grp8</jobname>
+          <join><cyclestr>&LOG_DIR;/gdas.enkf.forecast.grp8_t@Hz.log</cyclestr></join>
+          
+          <walltime>0:02:00</walltime>
+          <memory>254M</memory>
+          <nodes>64:ppn=24</nodes>
+          <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+          <dependency>
+            <taskdep task="gdas.enkf.jgdas_enkf_inflate_recenter"/>
+          </dependency>
+        </task>
+      </metatask>
+      <task name="gdas.enkf.jgdas_enkf_post" maxtries="1">
+        <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/JGDAS_ENKF_POST</command>
+        <queue>&QUEUE;</queue>
+        <account>&PROJECT;</account>
+        <jobname>gdas.enkf.jgdas_enkf_post</jobname>
+        <join><cyclestr>&LOG_DIR;/gdas.enkf.jgdas_enkf_post_t@Hz.log</cyclestr></join>
+        
+        <walltime>0:02:00</walltime>
+        <memory>254M</memory>
+        <nodes>20:ppn=24</nodes>
+        <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+        <dependency>
+          <metataskdep metatask="gdas.enkf.forecast"/>
+        </dependency>
+      </task>
+    </metatask>
+    <task name="gdas.jgdas_analysis" maxtries="1">
+      <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/JGDAS_ANALYSIS</command>
+      <queue>&QUEUE;</queue>
+      <account>&PROJECT;</account>
+      <jobname>gdas.jgdas_analysis</jobname>
+      <join><cyclestr>&LOG_DIR;/gdas.jgdas_analysis_t@Hz.log</cyclestr></join>
+      
+      <walltime>0:02:00</walltime>
+      <memory>3072M</memory>
+      <nodes>60:ppn=24</nodes>
+      <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+      <dependency>
+        <and>
+          <taskdep task="gdas.prep.jgdas_prep"/>
+          <taskdep task="gdas.prep.jgdas_emcsfc_sfc_prep"/>
+          <taskdep task="gdas.enkf.jgdas_enkf_post" cycle_offset="-06:00:00"/>
+        </and>
+      </dependency>
+    </task>
+    <task name="gdas.jgdas_forecast" maxtries="1">
+      <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/JGLOBAL_FORECAST</command>
+      <queue>&QUEUE;</queue>
+      <account>&PROJECT;</account>
+      <jobname>gdas.jgdas_forecast</jobname>
+      <join><cyclestr>&LOG_DIR;/gdas.jgdas_forecast_t@Hz.log</cyclestr></join>
+      
+      <walltime>0:02:00</walltime>
+      <memory>1024M</memory>
+      <nodes>64:ppn=24</nodes>
+      <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+      <dependency>
+        <and>
+          <true></true><!-- data dependency with no file -->
+          <metataskdep metatask="gdas.enkf.innovate"/>
+        </and>
+      </dependency>
+    </task>
+    <task name="gdas.post" maxtries="1">
+      <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/post</command>
+      <queue>&QUEUE;</queue>
+      <account>&PROJECT;</account>
+      <jobname>gdas.post</jobname>
+      <join><cyclestr>&LOG_DIR;/gdas.post_t@Hz.log</cyclestr></join>
+      
+      <walltime>0:02:00</walltime>
+      <memory>3072M</memory>
+      <nodes>6:ppn=24</nodes>
+      <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+      <dependency>
+        <taskdep task="gdas.jgdas_forecast"/>
+      </dependency>
+    </task>
+    <task name="gdas.vrfy" maxtries="1">
+      <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/vrfy</command>
+      <queue>&QUEUE;</queue>
+      <account>&PROJECT;</account>
+      <jobname>gdas.vrfy</jobname>
+      <join><cyclestr>&LOG_DIR;/gdas.vrfy_t@Hz.log</cyclestr></join>
+      
+      <walltime>0:02:00</walltime>
+      <memory>3072M</memory>
+      <nodes>1:ppn=24</nodes>
+      <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+      <dependency>
+        <taskdep task="gdas.post"/>
+      </dependency>
+    </task>
+  </metatask>
+  <metatask name="gfs">
+    <var name="dummy_var_8">DUMMY_VALUE</var>
+    <metatask name="gfs.dump">
+      <var name="dummy_var_9">DUMMY_VALUE</var>
+      <task name="gfs.dump.jgfs_tropcy_qc_reloc" maxtries="1">
+        <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/JGFS_TROPCY_QC_RELOC</command>
+        <queue>&QUEUE;</queue>
+        <account>&PROJECT;</account>
+        <jobname>gfs.dump.jgfs_tropcy_qc_reloc</jobname>
+        <join><cyclestr>&LOG_DIR;/gfs.dump.jgfs_tropcy_qc_reloc_t@Hz.log</cyclestr></join>
+        
+        <memory>300M</memory>
+        <nodes>1:ppn=24</nodes>
+        <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+        <dependency>
+          <taskdep task="gfs.dump.jgfs_dump"/>
+        </dependency>
+      </task>
+      <task name="gfs.dump.jgfs_dump" maxtries="1">
+        <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/JGFS_DUMP</command>
+        <queue>&QUEUE;</queue>
+        <account>&PROJECT;</account>
+        <jobname>gfs.dump.jgfs_dump</jobname>
+        <join><cyclestr>&LOG_DIR;/gfs.dump.jgfs_dump_t@Hz.log</cyclestr></join>
+        
+        <memory>300M</memory>
+        <nodes>1:ppn=24</nodes>
+        <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+        <!-- no dependencies -->
+      </task>
+    </metatask>
+    <metatask name="gfs.prep">
+      <var name="dummy_var_10">DUMMY_VALUE</var>
+      <task name="gfs.prep.jgfs_emcsfc_sfc_prep" maxtries="1">
+        <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/JGFS_EMCSFC_SFC_PREP</command>
+        <queue>&QUEUE;</queue>
+        <account>&PROJECT;</account>
+        <jobname>gfs.prep.jgfs_emcsfc_sfc_prep</jobname>
+        <join><cyclestr>&LOG_DIR;/gfs.prep.jgfs_emcsfc_sfc_prep_t@Hz.log</cyclestr></join>
+        
+        <memory>300M</memory>
+        <nodes>1:ppn=24</nodes>
+        <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+        <dependency>
+          <true></true><!-- data dependency with no file -->
+        </dependency>
+      </task>
+      <task name="gfs.prep.jgfs_prep" maxtries="1">
+        <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/JGFS_PREP</command>
+        <queue>&QUEUE;</queue>
+        <account>&PROJECT;</account>
+        <jobname>gfs.prep.jgfs_prep</jobname>
+        <join><cyclestr>&LOG_DIR;/gfs.prep.jgfs_prep_t@Hz.log</cyclestr></join>
+        
+        <walltime>0:02:00</walltime>
+        <memory>3072M</memory>
+        <nodes>3:ppn=24</nodes>
+        <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+        <dependency>
+          <metataskdep metatask="gfs.dump"/>
+        </dependency>
+      </task>
+      <task name="gfs.prep.jgfs_prep_post" maxtries="1">
+        <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/JGFS_PREP_POST</command>
+        <queue>&QUEUE;</queue>
+        <account>&PROJECT;</account>
+        <jobname>gfs.prep.jgfs_prep_post</jobname>
+        <join><cyclestr>&LOG_DIR;/gfs.prep.jgfs_prep_post_t@Hz.log</cyclestr></join>
+        
+        <memory>300M</memory>
+        <nodes>1:ppn=24</nodes>
+        <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+        <dependency>
+          <taskdep task="gfs.jgfs_analysis"/>
+        </dependency>
+      </task>
+    </metatask>
+    <task name="gfs.jgfs_analysis" maxtries="1">
+      <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/JGFS_ANALYSIS</command>
+      <queue>&QUEUE;</queue>
+      <account>&PROJECT;</account>
+      <jobname>gfs.jgfs_analysis</jobname>
+      <join><cyclestr>&LOG_DIR;/gfs.jgfs_analysis_t@Hz.log</cyclestr></join>
+      
+      <walltime>0:02:00</walltime>
+      <memory>3072M</memory>
+      <nodes>60:ppn=24</nodes>
+      <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+      <dependency>
+        <and>
+          <taskdep task="gfs.prep.jgfs_prep"/>
+          <taskdep task="gfs.prep.jgfs_emcsfc_sfc_prep"/>
+          <taskdep task="gdas.enkf.jgdas_enkf_post" cycle_offset="-06:00:00"/>
+        </and>
+      </dependency>
+    </task>
+    <task name="gfs.jgfs_vminmon" maxtries="1">
+      <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/JGFS_VMINMON</command>
+      <queue>&QUEUE;</queue>
+      <account>&PROJECT;</account>
+      <jobname>gfs.jgfs_vminmon</jobname>
+      <join><cyclestr>&LOG_DIR;/gfs.jgfs_vminmon_t@Hz.log</cyclestr></join>
+      
+      <memory>300M</memory>
+      <nodes>1:ppn=24</nodes>
+      <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+      <dependency>
+        <taskdep task="gfs.jgfs_analysis"/>
+      </dependency>
+    </task>
+    <task name="gfs.jgfs_forecast" maxtries="1">
+      <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/JGLOBAL_FORECAST</command>
+      <queue>&QUEUE;</queue>
+      <account>&PROJECT;</account>
+      <jobname>gfs.jgfs_forecast</jobname>
+      <join><cyclestr>&LOG_DIR;/gfs.jgfs_forecast_t@Hz.log</cyclestr></join>
+      
+      <walltime>0:02:00</walltime>
+      <memory>1024M</memory>
+      <nodes>64:ppn=24</nodes>
+      <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+      <dependency>
+        <taskdep task="gfs.jgfs_analysis"/>
+      </dependency>
+    </task>
+    <task name="gfs.jgfs_post" maxtries="1">
+      <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/JGFS_POST</command>
+      <queue>&QUEUE;</queue>
+      <account>&PROJECT;</account>
+      <jobname>gfs.jgfs_post</jobname>
+      <join><cyclestr>&LOG_DIR;/gfs.jgfs_post_t@Hz.log</cyclestr></join>
+      
+      <walltime>0:02:00</walltime>
+      <memory>3072M</memory>
+      <nodes>6:ppn=24</nodes>
+      <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+      <dependency>
+        <taskdep task="gfs.jgfs_forecast"/>
+      </dependency>
+    </task>
+    <task name="gfs.jgfs_vrfy" maxtries="1">
+      <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/JGFS_VRFY</command>
+      <queue>&QUEUE;</queue>
+      <account>&PROJECT;</account>
+      <jobname>gfs.jgfs_vrfy</jobname>
+      <join><cyclestr>&LOG_DIR;/gfs.jgfs_vrfy_t@Hz.log</cyclestr></join>
+      
+      <walltime>0:02:00</walltime>
+      <memory>3072M</memory>
+      <nodes>1:ppn=24</nodes>
+      <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+      <dependency>
+        <taskdep task="gfs.jgfs_post"/>
+      </dependency>
+    </task>
+  </metatask>
+  <metatask name="archive">
+    <var name="dummy_var_11">DUMMY_VALUE</var>
+    <task name="archive.gdasarch" maxtries="1">
+      <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/gdasarch</command>
+      <queue>&QUEUESERV;</queue>
+      <account>&PROJECT;</account>
+      <jobname>archive.gdasarch</jobname>
+      <join><cyclestr>&LOG_DIR;/archive.gdasarch_t@Hz.log</cyclestr></join>
+      
+      <walltime>0:02:00</walltime>
+      <memory>3072M</memory>
+      <cores>1</cores>
+      <shared></shared>
+      
+      <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+      <dependency>
+        <taskdep task="gdas.jgdas_verfrad"/>
+      </dependency>
+    </task>
+    <task name="archive.gfsarch" maxtries="1">
+      <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/gfsarch</command>
+      <queue>&QUEUESERV;</queue>
+      <account>&PROJECT;</account>
+      <jobname>archive.gfsarch</jobname>
+      <join><cyclestr>&LOG_DIR;/archive.gfsarch_t@Hz.log</cyclestr></join>
+      
+      <walltime>0:02:00</walltime>
+      <memory>3072M</memory>
+      <cores>1</cores>
+      <shared></shared>
+      
+      <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+      <dependency>
+        <taskdep task="gfs.jgfs_vrfy"/>
+      </dependency>
+    </task>
+    <metatask name="archive.earc">
+      <var name="dummy_var_12">DUMMY_VALUE</var>
+      <task name="archive.earc.grp1" maxtries="1">
+        <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/earc</command>
+        <queue>&QUEUESERV;</queue>
+        <account>&PROJECT;</account>
+        <jobname>archive.earc.grp1</jobname>
+        <join><cyclestr>&LOG_DIR;/archive.earc.grp1_t@Hz.log</cyclestr></join>
+        
+        <walltime>0:02:00</walltime>
+        <memory>3072M</memory>
+        <cores>1</cores>
+        <shared></shared>
+        
+        <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+        <dependency>
+          <taskdep task="gdas.enkf.jgdas_enkf_post"/>
+        </dependency>
+      </task>
+      <task name="archive.earc.grp2" maxtries="1">
+        <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/earc</command>
+        <queue>&QUEUESERV;</queue>
+        <account>&PROJECT;</account>
+        <jobname>archive.earc.grp2</jobname>
+        <join><cyclestr>&LOG_DIR;/archive.earc.grp2_t@Hz.log</cyclestr></join>
+        
+        <walltime>0:02:00</walltime>
+        <memory>3072M</memory>
+        <cores>1</cores>
+        <shared></shared>
+        
+        <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+        <dependency>
+          <taskdep task="gdas.enkf.jgdas_enkf_post"/>
+        </dependency>
+      </task>
+      <task name="archive.earc.grp3" maxtries="1">
+        <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/earc</command>
+        <queue>&QUEUESERV;</queue>
+        <account>&PROJECT;</account>
+        <jobname>archive.earc.grp3</jobname>
+        <join><cyclestr>&LOG_DIR;/archive.earc.grp3_t@Hz.log</cyclestr></join>
+        
+        <walltime>0:02:00</walltime>
+        <memory>3072M</memory>
+        <cores>1</cores>
+        <shared></shared>
+        
+        <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+        <dependency>
+          <taskdep task="gdas.enkf.jgdas_enkf_post"/>
+        </dependency>
+      </task>
+      <task name="archive.earc.grp4" maxtries="1">
+        <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/earc</command>
+        <queue>&QUEUESERV;</queue>
+        <account>&PROJECT;</account>
+        <jobname>archive.earc.grp4</jobname>
+        <join><cyclestr>&LOG_DIR;/archive.earc.grp4_t@Hz.log</cyclestr></join>
+        
+        <walltime>0:02:00</walltime>
+        <memory>3072M</memory>
+        <cores>1</cores>
+        <shared></shared>
+        
+        <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+        <dependency>
+          <taskdep task="gdas.enkf.jgdas_enkf_post"/>
+        </dependency>
+      </task>
+      <task name="archive.earc.grp5" maxtries="1">
+        <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/earc</command>
+        <queue>&QUEUESERV;</queue>
+        <account>&PROJECT;</account>
+        <jobname>archive.earc.grp5</jobname>
+        <join><cyclestr>&LOG_DIR;/archive.earc.grp5_t@Hz.log</cyclestr></join>
+        
+        <walltime>0:02:00</walltime>
+        <memory>3072M</memory>
+        <cores>1</cores>
+        <shared></shared>
+        
+        <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+        <dependency>
+          <taskdep task="gdas.enkf.jgdas_enkf_post"/>
+        </dependency>
+      </task>
+      <task name="archive.earc.grp6" maxtries="1">
+        <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/earc</command>
+        <queue>&QUEUESERV;</queue>
+        <account>&PROJECT;</account>
+        <jobname>archive.earc.grp6</jobname>
+        <join><cyclestr>&LOG_DIR;/archive.earc.grp6_t@Hz.log</cyclestr></join>
+        
+        <walltime>0:02:00</walltime>
+        <memory>3072M</memory>
+        <cores>1</cores>
+        <shared></shared>
+        
+        <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+        <dependency>
+          <taskdep task="gdas.enkf.jgdas_enkf_post"/>
+        </dependency>
+      </task>
+      <task name="archive.earc.grp7" maxtries="1">
+        <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/earc</command>
+        <queue>&QUEUESERV;</queue>
+        <account>&PROJECT;</account>
+        <jobname>archive.earc.grp7</jobname>
+        <join><cyclestr>&LOG_DIR;/archive.earc.grp7_t@Hz.log</cyclestr></join>
+        
+        <walltime>0:02:00</walltime>
+        <memory>3072M</memory>
+        <cores>1</cores>
+        <shared></shared>
+        
+        <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+        <dependency>
+          <taskdep task="gdas.enkf.jgdas_enkf_post"/>
+        </dependency>
+      </task>
+      <task name="archive.earc.grp8" maxtries="1">
+        <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/earc</command>
+        <queue>&QUEUESERV;</queue>
+        <account>&PROJECT;</account>
+        <jobname>archive.earc.grp8</jobname>
+        <join><cyclestr>&LOG_DIR;/archive.earc.grp8_t@Hz.log</cyclestr></join>
+        
+        <walltime>0:02:00</walltime>
+        <memory>3072M</memory>
+        <cores>1</cores>
+        <shared></shared>
+        
+        <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+        <dependency>
+          <taskdep task="gdas.enkf.jgdas_enkf_post"/>
+        </dependency>
+      </task>
+    </metatask>
+  </metatask>
+  <task name="final" final="true">
+    <command>/gpfs/hps3/emc/hwrf/noscrub/Bin.Liu/save/gitCROW/model/ecflow_fv3gfs/jobs/L</command>
+    <queue>&QUEUESERV;</queue>
+    <account>&PROJECT;</account>
+    <jobname>final</jobname>
+    <join><cyclestr>&LOG_DIR;/final_t@Hz.log</cyclestr></join>
+    
+    <memory>300M</memory>
+    <nodes>1:ppn=24</nodes>
+    <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+    <dependency>
+      <and>
+        <metataskdep metatask="gdas"/>
+        <metataskdep metatask="gfs"/>
+        <metataskdep metatask="archive"/>
+      </and>
+    </dependency>
+  </task>
+
+</workflow>

@@ -1,0 +1,8 @@
+#! /bin/sh
+
+set -xue
+export DATAtest="${DATA:-${SCRUB_DIR}}"
+export COMOUTtest="${COMOUT:-${COM_DIR}}"
+export LOG_DIR="${LOG_DIR}"
+
+echo "Final job is complete."

@@ -1,0 +1,186 @@
+########################################################################
+
+# Convenient blocks to include in actions:
+
+generic_fcst_template: &fcst_template !Template
+  testvar:
+    type: int
+    default: 5
+  nx: 
+    type: int
+  ny:
+    type: int
+  dt_rand:
+    type: int
+  dt_write:
+    type: timedelta
+  infile:
+    type: string
+    stages: [ execution ]
+  outfile_format:
+    type: string
+    stages: [ execution ]
+  seed:
+    type: int
+    stages: [ execution ]
+
+non_ens_fcst_template: &non_ens_fcst_template !Template
+  <<: *fcst_template
+  seed:
+    type: int
+
+shared_serial_action: &shared_serial_action
+  <<: [ *runtime, *options ]
+  com: !calc "{doc.runtime.com}"
+  prior_com: !calc "{doc.runtime.prior_com}"
+  rocoto_memory: "2G"
+  accounting: !calc doc.platform.serial_accounting
+  resources: !JobRequest [ { exe: placeholder } ]
+  walltime: !timedelta 00:10:00
+
+parallel_unlimited_memory_action: &parallel_unlimited_memory_action
+  <<: [ *runtime, *options ]
+  rocoto_memory: ''
+  accounting: !calc doc.platform.parallel_accounting
+  walltime: !timedelta 00:10:00
+
+generic_fcst: &generic_fcst_action
+  <<: *parallel_unlimited_memory_action
+  Template: *fcst_template
+  dt_rand: !calc dt_rand_fcst
+  dt_write: !calc dt_write_fcst
+  infile: !expand "{com}/analysis.grid"
+  outfile_format: "fcst_######.grid"
+  start_time: !timedelta 0:00
+  namelist: !expand |
+    &settings
+      nx={nx}
+      ny={ny}
+      infile={tools.fort(infile)}
+      outfile_format={tools.fort(outfile_format)}
+      dt_write={round(tools.as_seconds(dt_write)/3600)}
+      start_time={round(tools.as_seconds(start_time)/3600)}
+      end_time={round(tools.as_seconds(end_time)/3600)}
+      global_seed={seed}
+      dt_rand={dt_rand}
+    /
+
+########################################################################
+
+# Actual actions:
+
+final: &final_action !Action
+  <<: *shared_serial_action
+  J_JOB: JFINAL
+
+start_cycle: &start_cycle_action !Action
+  <<: *shared_serial_action
+  J_JOB: JSTART_CYCLE
+
+clim_init: &clim_init_action !Action
+  <<: *parallel_unlimited_memory_action
+  J_JOB: JCLIM_INIT
+  resources: !JobRequest
+    - exe: !calc doc.executables.climatology_init
+      mpi_ranks: !calc doc.platform.init_ranks
+  namelist: !expand |
+    &settings
+      nx={nx}
+      ny={ny}
+      global_seed={seed}
+      outfile={outfile}
+    /
+  outfile: "analysis.grid"
+
+clim_fcst: &clim_fcst_action !Action
+  <<: *generic_fcst_action
+  Template: *non_ens_fcst_template
+  J_JOB: JCLIM_FCST
+  resources: !JobRequest
+    - exe: !calc doc.executables.fcst
+      mpi_ranks: !calc doc.platform.fcst_ranks
+  copy_glob: 'fcst*grid'
+  end_time: !calc fcst_len
+
+ens_fcst: &ens_fcst_action !Action
+  <<: *generic_fcst_action
+  Template: *fcst_template
+  J_JOB: JENS_FCST
+  resources: !JobRequest
+    - exe: !calc doc.executables.fcst
+      mpi_ranks: !calc doc.platform.ens_ranks
+
+  member_id: null
+  dt_write: !calc doc.options.cycle_len
+  infile: !expand "{prior_com}/analysis.grid"
+  seed: !calc doc.options.seed + member_id
+  cyc_len_int: !calc round(tools.as_seconds(doc.options.cycle_len)/3600)
+  ens_output_num: !calc int(tools.as_seconds(dt_write)/3600)
+  ens_output: !expand "output_{ens_output_num:06d}.grid"
+  ens_com_filename: !expand "member_{member_id:06d}.grid"
+  outfile_format: "output_######.grid"
+  end_time: !calc doc.clock.next(1)-doc.clock.now
+
+fcst: &fcst_action !Action
+  <<: *generic_fcst_action
+  Template: *non_ens_fcst_template
+  J_JOB: JFCST
+  resources: !JobRequest
+    - exe: !calc doc.executables.fcst
+      mpi_ranks: !calc doc.platform.fcst_ranks
+  copy_glob: 'fcst*grid'
+  end_time: !calc fcst_len
+
+post: &post_action !Action
+  <<: *parallel_unlimited_memory_action
+  J_JOB: JPOST
+  resources: !JobRequest
+    - exe: !calc doc.executables.post
+      mpi_ranks: !calc doc.platform.fcst_ranks
+
+  namelist: !expand |
+    &settings
+      nx = {nx}
+      ny = {ny}
+      infile = {tools.fort(infile)}
+    /
+
+  # fhr will be replaced at runtime
+  fhr: null
+
+  # Input file to the post job.  Note that it is calculated from the
+  # fhr, so it will change at runtime.
+  infile: !expand fcst_{fhr:06d}.grid
+
+  # File wait settings for expost.sh.  Units are bytes and seconds:
+  min_size: !calc "nx*ny*4 + 8"
+  min_age: 20
+  sleep_wait: 30
+  max_wait: 300
+
+  FCST_FREQ_HRS: !calc round(tools.as_seconds(dt_write_fcst)//3600)
+  FCST_LEN: !calc round(tools.as_seconds(fcst_len)//3600)
+  DT_WRITE: !calc round(tools.as_seconds(dt_write_fcst)//3600)
+  SLEEP_WAIT: !calc sleep_wait
+  MIN_SIZE: !calc min_size
+  MIN_AGE: !calc min_age
+  MAX_WAIT_STEPS: !calc "(max_wait+sleep_wait-1)//sleep_wait"
+
+analysis: &analysis_action !Action
+  <<: *parallel_unlimited_memory_action
+  J_JOB: JANALYSIS
+  resources: !JobRequest
+    - exe: !calc doc.executables.analysis
+      mpi_ranks: !calc doc.platform.fcst_ranks
+  member_input: member_%06d.grid
+  fcst_len_int: !calc round(tools.as_seconds(fcst_len)/3600)
+  guess_in: !expand "{prior_com}/fcst_{fcst_len_int:06d}.grid"
+  namelist: !expand |
+    &settings
+      nx = {nx}
+      ny = {ny}
+      members = {ens_members}
+      analysis_out = "analysis.grid"
+      ensemble_format = "member_######.grid"
+      guess_in = {tools.fort(guess_in)}
+    /

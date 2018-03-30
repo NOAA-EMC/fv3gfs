@@ -1,0 +1,245 @@
+<?xml version="1.0"?>
+<!DOCTYPE workflow
+[
+  <!ENTITY ACCOUNT "nems">
+  <!ENTITY SCRUB_DIR "/scratch4/NCEPDEV/nems/scrub/Samuel.Trahan/example">
+
+  <!ENTITY LOG_DIR "&SCRUB_DIR;/log">
+  <!ENTITY COM_DIR "&SCRUB_DIR;/com">
+  <!ENTITY TASK_THROTTLE "30">
+  <!ENTITY ENSEMBLE_TASK_THROTTLE "20">
+  <!ENTITY CYCLE_THROTTLE "2">
+  <!ENTITY MAX_TRIES "2">
+
+  <!ENTITY PARALLEL_QUEUE "batch">
+  <!ENTITY SERIAL_QUEUE "batch">
+  <!ENTITY TRANSFER_QUEUE "service">
+
+  <!ENTITY CYCLE_INTERVAL "6:00:00">
+]>
+
+<workflow realtime="F" cyclethrottle="&CYCLE_THROTTLE;"
+          scheduler="moabtorque"
+          taskthrottle="&TASK_THROTTLE;">
+
+  <!-- Rocoto is cycle-based, so we have to specify a cycle to run.
+       This does NOT set the cycle to run in each regression test; it
+       is only for Rocoto bookkeeping purposes. -->
+  <cycledef>201708150000 201708201800 &CYCLE_INTERVAL;</cycledef>
+
+  <!-- Tell Rocoto where to put Rocoto-specific log messages. -->
+  <log><cyclestr>&LOG_DIR;/rocoto_@Y@m@d@H.log</cyclestr></log>
+
+  <task name="start_cycle">
+    <command>set -xue ; mkdir -p $COM_DIR</command>
+    <jobname>start_cycle_<cyclestr>@Y@m@d@H/</cyclestr></jobname>
+    <account>&ACCOUNT;</account>
+    <walltime>00:05:00</walltime>
+    
+    <!-- Build job resources minus wallclock -->
+    <queue>&SERIAL_QUEUE;</queue>
+    <memory>100M</memory> <!-- 100 MB of memory -->
+    <cores>1</cores> <!-- 1 core = shared-node serial job -->
+    
+    <envar>
+      <name>COM_DIR</name>
+      <value><cyclestr>&COM_DIR;/@Y@m@d@H</cyclestr></value>
+    </envar>
+    <join><cyclestr>&LOG_DIR;/@Y@m@d@H/</cyclestr>start_cycle.log</join>
+
+    <!-- No dependency.  That means this job starts as soon as the
+         cycle starts. -->
+  </task>
+
+  <task name="ens_prep">
+    <command>set -xue ; echo Would do something to prepare for ensemble here</command>
+    <jobname>ens_prep_<cyclestr>@Y@m@d@H/</cyclestr></jobname>
+    <account>&ACCOUNT;</account>
+    <walltime>00:05:00</walltime>
+    
+    <!-- Build job resources minus wallclock -->
+    <queue>&SERIAL_QUEUE;</queue>
+    <memory></memory> <!-- Unlimited virtual memory -->
+
+    <!-- Note that this is a serial job, but we request 2 cores.  This
+         is a trick on Jet and Theia to get exclusive access to a
+         node.    -->
+    <cores>2</cores>
+    
+    <envar>
+      <name>COM_DIR</name>
+      <value><cyclestr>&COM_DIR;/@Y@m@d@H</cyclestr></value>
+    </envar>
+    <join><cyclestr>&LOG_DIR;/@Y@m@d@H/</cyclestr>ens_prep.log</join>
+
+    <dependency>
+      <!-- Run this task if:
+        1. the fcst for the previous cycle is running, or
+        2. there is no previous cycle
+
+      AND the start_cycle job is complete
+      -->
+      <and>
+        <or>
+          <taskdep task="fcst" state="RUNNING" 
+                   cycle_offset="-&CYCLE_INTERVAL;"/>
+          <not>
+            <cycleexistdep cycle_offset="-&CYCLE_INTERVAL;"/>
+          </not>
+        </or>
+        <taskdep task="start_cycle"/>
+      </and>
+    </dependency>
+  </task>
+  
+  <metatask name="ensemble" throttle="&ENSEMBLE_TASK_THROTTLE;">
+    <var name="MEMBER">
+      001 002 003 004 005 006 007 008 009 010
+      011 012 013 014 015 016 017 018 019 020
+      021 022 023 024 025 026 027 028 029 030
+      031 032 033 034 035 036 037 038 039 040
+      041 042 043 044 045 046 047 048 049 050
+      051 052 053 054 055 056 057 058 059 060
+      061 062 063 064 065 066 067 068 069 070
+      071 072 073 074 075 076 077 078 079 080
+      081 082 083 084 085 086 087 088 089 090
+      091 092 093 094 095 096 097 098 099 100
+    </var>
+
+    <task name="ens_fcst_#MEMBER#" maxtries="&MAX_TRIES;">
+      <!-- This is the task that would run one member of the DA
+           ensemble.  For this example, we'll just make a text file
+           with the member number. -->
+      <command>set -xue ; echo Run ensemble forecast #MEMBER# > <cyclestr>$COM_DIR/ensfcst#MEMBER#.out</cyclestr></command>
+      <join><cyclestr>&LOG_DIR;/@Y@m@d@H/</cyclestr>ens_fcst_#MEMBER#.log</join>
+      <jobname>ens_fcst_#MEMBER#_<cyclestr>@Y@m@d@H/</cyclestr></jobname>
+      <account>&ACCOUNT;</account>
+      <walltime>00:05:00</walltime>
+      
+      <queue>&PARALLEL_QUEUE;</queue>
+      <memory></memory> <!-- Unlimited virtual memory -->
+
+      <!--Specify task geometry:
+          2 nodes with 24 ranks per node
+          4 nodes with 8 ranks per node
+      -->
+      <nodes>2:ppn=24+4:ppn=8</nodes>
+
+      <envar>
+        <name>COM_DIR</name>
+        <value><cyclestr>&COM_DIR;/@Y@m@d@H</cyclestr></value>
+      </envar>
+
+      <dependency>
+        <taskdep task="ens_prep"/>
+      </dependency>
+    </task>
+  </metatask>
+
+  <task name="gsi">
+    <!-- This is the task that would run the GSI job.  For this
+         example, we will just concatinate the ensfcst*.out files
+         instead.  -->
+    <command>set -xue ; cat <cyclestr>$COM_DIR/ensfcst*.out</cyclestr> > <cyclestr>$COM_DIR/gsi.out</cyclestr></command>
+    <join><cyclestr>&LOG_DIR;/@Y@m@d@H/</cyclestr>gsi.log</join>
+    <jobname>gsi</jobname>
+    <account>&ACCOUNT;</account>
+    <walltime>00:05:00</walltime>
+    
+    <!-- Build job resources minus wallclock -->
+    <queue>&PARALLEL_QUEUE;</queue>
+    <memory></memory> <!-- Unlimited virtual memory -->
+    <cores>48</cores> <!-- Want 48 cores, but don't care about geometry -->
+    
+    <envar>
+      <name>COM_DIR</name>
+      <value><cyclestr>&COM_DIR;/@Y@m@d@H</cyclestr></value>
+    </envar>
+
+    <dependency>
+      <!-- Run this task when the ensemble is complete -->
+      <metataskdep metatask="ensemble"/>
+    </dependency>
+  </task>
+
+  <task name="fcst">
+    <!-- This is the task that would run the deterministic,
+         full-length, forecast.  For this example, we will just sort
+         the GSI output instead.  -->
+    <command>set -xue ; sort <cyclestr>$COM_DIR/gsi.out</cyclestr> > <cyclestr>$COM_DIR/fcst.out</cyclestr> ; sleep 180 ; echo done </command>
+    <join><cyclestr>&LOG_DIR;/@Y@m@d@H/</cyclestr>fcst.log</join>
+    <jobname>fcst_<cyclestr>@Y@m@d@H/</cyclestr></jobname>
+    <account>&ACCOUNT;</account>
+    <walltime>00:05:00</walltime>
+    
+    <queue>&PARALLEL_QUEUE;</queue>
+    <memory></memory> <!-- Unlimited virtual memory -->
+    <nodes>3:ppn=12</nodes>
+    
+    <envar>
+      <name>COM_DIR</name>
+      <value><cyclestr>&COM_DIR;/@Y@m@d@H</cyclestr></value>
+    </envar>
+
+    <dependency>
+      <!-- Run this task when the ensemble is complete -->
+      <taskdep task="gsi"/>
+    </dependency>
+  </task>
+
+  <task name="post">
+    <!-- This is the task that would run the post in parallel with the
+         forecast.  For this example, we just make a text file. -->
+    <command>set -xue ; echo would run post job > <cyclestr>$COM_DIR/post.out</cyclestr> ; sleep 180 ; echo done</command>
+    <join><cyclestr>&LOG_DIR;/@Y@m@d@H/</cyclestr>post.log</join>
+    <jobname>post</jobname>
+    <account>&ACCOUNT;</account>
+    <walltime>00:05:00</walltime>
+    
+    <queue>&PARALLEL_QUEUE;</queue>
+    <memory></memory> <!-- Unlimited virtual memory -->
+    <nodes>2:ppn=12</nodes>
+    
+    <envar>
+      <name>COM_DIR</name>
+      <value><cyclestr>&COM_DIR;/@Y@m@d@H</cyclestr></value>
+    </envar>
+
+    <dependency>
+      <!-- Submit this task when the forecast starts running -->
+      <taskdep task="fcst" state="running"/>
+    </dependency>
+  </task>
+
+
+  <task name="archive">
+    <!-- This is the task that would archive results.  For this
+         example, we just make a text file. -->
+    <command>set -xue ; echo would archive results > <cyclestr>$COM_DIR/archive.out</cyclestr></command>
+    <join><cyclestr>&LOG_DIR;/@Y@m@d@H/</cyclestr>archive.log</join>
+    <jobname>archive_<cyclestr>@Y@m@d@H/</cyclestr></jobname>
+    <account>&ACCOUNT;</account>
+    <walltime>00:05:00</walltime>
+    
+    <queue>&TRANSFER_QUEUE;</queue>
+    <memory>100M</memory>
+    <cores>1</cores>
+    
+    <envar>
+      <name>COM_DIR</name>
+      <value><cyclestr>&COM_DIR;/@Y@m@d@H</cyclestr></value>
+    </envar>
+
+    <dependency>
+      <!-- Submit this task after the forecast and post complete -->
+      <and>
+        <taskdep task="post"/>
+        <taskdep task="fcst"/>
+      </and>
+    </dependency>
+  </task>
+  
+</workflow>
+
+
+

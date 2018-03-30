@@ -1,0 +1,81 @@
+int: 1
+str: hello
+float: 2.5
+array:
+  - 1
+  - 2
+set: !!set
+  ? item 1
+  ? item 2
+map:
+  a: 1
+  b: b
+  c: 2017-08-15
+action: &action !Action
+  var1: 1
+  calc1: !calc var1 + var1
+timedelta: !timedelta 03:15
+
+testmax: !FirstMax
+  - { do: a,  when: 1 }
+  - { do: b,  when: 2 }
+
+testmin: !FirstMin
+  - { do: a,  when: 1 }
+  - { do: b,  when: 2 }
+
+testfirst: !FirstTrue
+  - { do: a,  when: true }
+  - { do: b,  when: false }
+  - { otherwise: should not get here }
+
+testlast: !LastTrue
+  - { do: a,  when: true }
+  - { do: b,  when: false }
+  - { otherwise: should not get here }
+
+template: &template !Template
+  a:
+    type: int
+  b:
+    type: int
+    default: 5
+
+data: !Action
+  Template: *template
+  a: 5
+
+
+workflow: !Cycle
+  Rocoto:
+    scheduler:
+      name: MoabTorque
+
+  Clock:
+     start: 2017-02-14t18:00:00
+     end: 2017-02-19t12:00:00
+     step: !timedelta 06:00
+  family1: !Family
+    task5: !Task {}
+    task6: !Task {}
+    task1: !Task
+      Perform: *action
+      Trigger: !Depend task2 & suite.has_cycle('-6:00')
+      Complete: !Depend family2
+    task2: !Task {}
+    task3: !Task {}
+    task4: !Task {}
+  family2: !Family
+    othertask: !Task
+      Perform: *action
+      Trigger: task1.at('-6:00')
+
+omap: !!omap
+  - b: 2
+  - a: 1
+  - c:
+      - 5
+      - 4
+      - 3
+      - 2
+      - 1

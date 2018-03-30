@@ -1,0 +1,74 @@
+
+vrfy_base: &vrfy_base !Action
+  <<: *action_base
+  Template: [ *CYC_TRACK_VARS, *CYC_GEN_VARS, *MIN_VARS, *RAD_VARS, *OZN_VARS, *MIN_RAD_OZN_VARS, *VRFY_CDUMP_GFS_VARS, *vrfy_template ]
+  J_JOB: vrfy
+  walltime: !timedelta 01:00:00
+  resources: !calc run_vrfy.resources
+  memory: !calc run_vrfy.memory
+
+  shell_vars: [ "[A-Z][A-Z0-9_]*$", "assim_freq", "sys_tp", "l.*4d.*" ]
+
+  CASE_ENKF: !calc doc.fv3_enkf_settings.CASE
+  CDFNL: "gdas"
+  CDUMPFCST: "gdas"  # Fit-to-obs with GDAS/GFS prepbufr
+  GRIB1_WORKS: NO
+  SMOOTH_ENKF: YES
+  VRFYG2OBS: NO
+  VRFYGENESIS: NO
+  VRFYGMPK: NO
+  VRFYMINMON: YES
+  VRFYOZN: NO
+  VRFYPRCP: YES
+  VRFYRAD: YES
+  VRFYTRAK: NO
+  VSDB_STEP1: YES
+  VSDB_STEP2: NO
+  VRFYGMPK: NO         # Gempak verification
+  WRITE_NEMSIOFILE: YES
+  assim_freq: 6
+  nst_anl: YES
+  true_false_vars: [ 'QUILTING', 'WRITE_NEMSIOFILE', 'nst_anl', 'zhao_mic' ]
+
+vrfy_gfs_action: &vrfy_gfs_action !Action
+  <<: *vrfy_base
+  Template: [ *vrfy_template_gfs ]
+  CDUMP: gfs
+  CASE: !calc doc.fv3_gfs_settings.CASE
+  Inherit: !Inherit
+    - [ doc.fv3_gfs_settings, ".*" ]
+    - [ doc.data_assimilation, ".*" ]
+    - [ doc.gfs_output_settings, "^FH.*|OUTPUT_GRID" ]
+    - [ doc.platform.general_env, ".*" ]
+    - [ doc.platform.mpi_tuning, ".*" ]
+    - [ doc.fv3_settings, "LEVS|QUILTING|WRITE_NEMSIOFILE|nst_anl" ]
+    - [ doc.case, "EDATE|SDATE|gfs_cyc|DO_RELOCATE|DO_MAKEPREPBUFR" ]
+  BACKDATEVSDB: 24
+  VBACKUP_PRCP: 24
+  VSDBSH: !calc doc.places.VSDBSH
+  FHMIN: !calc doc.gfs_output_settings.FHMIN_GFS
+  FHMAX: !calc doc.gfs_output_settings.FHMIN_GFS
+  FHOUT: !calc doc.gfs_output_settings.FHMIN_GFS
+  ftyplist: "pgbq"
+  vhr_rain: 240
+  vlength: 240
+  vsdbhome: !calc doc.places.vsdbhome
+  vsdbsave: !calc doc.places.vsdbsave
+  VDUMP: !calc CDUMP
+
+  # Variables to import in shell:
+  shell_vars: [ "[A-Z][A-Z0-9_]*$", "v.*", "ftyplist", "envir", ".*syndir", "HOME.*", "COM.*", ".*TANK.*", ".*typlist", ".*vrfy.*", "fitdir" ]
+
+vrfy_gdas_action: &vrfy_gdas_action !Action
+  <<: *vrfy_base
+  CDUMP: gdas
+  CASE: !calc doc.fv3_gdas_settings.CASE
+  Inherit: !Inherit
+    - [ doc.fv3_gdas_settings, ".*" ]
+    - [ doc.data_assimilation, ".*" ]
+    - [ doc.gfs_output_settings, "^FH.*|OUTPUT_GRID" ]
+    - [ doc.platform.general_env, ".*" ]
+    - [ doc.platform.mpi_tuning, ".*" ]
+    - [ doc.fv3_settings, "LEVS|QUILTING|WRITE_NEMSIOFILE|nst_anl" ]
+    - [ doc.case, "EDATE|SDATE|gfs_cyc|DO_RELOCATE|DO_MAKEPREPBUFR" ]
+  VDUMP: !calc CDUMP

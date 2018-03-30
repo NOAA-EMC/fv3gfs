@@ -1,0 +1,250 @@
+fv3_settings_template: !Template &fv3_settings_template
+
+  do_vort_damp:
+    type: string
+    allowed: [ ".true.", ".false." ]
+    default: ".true."
+    description: vorticity and divergence damping
+  consv_te: 
+    type: float
+    default: 1.
+    description: conserve total energy
+  fv_sg_adj:
+    type: int
+    default: 450
+    description: time-scale to remove 2dz instability
+  dspheat:
+    type: string
+    default: ".true."
+    allowed: [ ".true.", ".false." ]
+    description: dissipative heating
+  shal_cnv:
+    type: string
+    allowed: [ ".true.", ".false." ]
+    default: ".true."
+    description: shallow convection flag
+  agrid_vel_rst:
+    type: string
+    allowed: [ ".true.", ".false." ]
+    default: ".true."
+    description: "write velocity restarts on A grid?"
+
+  IEMS: { type: int, default: 1 }
+  IALB: { type: int, default: 1 }
+  ISOL: { type: int, default: 2 }
+  IAER: { type: int, default: 111 }
+  ICO2: { type: int, default: 2 }
+
+  warm_start:
+    type: string
+    allowed: [ ".true.", ".false." ]
+    default: ".false."
+
+  read_increment:
+    type: string
+    allowed: [ ".true.", ".false." ]
+    default: ".false."
+
+  restart_interval:
+    type: int
+    default: 6
+
+  LEVS:
+    type: int
+    description: Number of vertical levels in FV3
+
+  FHCYC: 
+    type: int
+    default: 24
+    description: Surface cycle update frequency
+
+  QUILTING: 
+    type: bool
+    default: YES
+    description: Should output quilting be used?
+
+  WRITE_NEMSIOFILE:
+    type: bool
+    default: YES
+    description: Should nemsio output be used (yes/true) instead of netcdf (no/false)?
+
+  WRITE_NEMSIOFLIP:
+    type: bool
+    default: YES
+
+  nst_anl:
+    type: bool
+    default: YES
+
+  DONST:
+    type: bool
+    default: YES
+
+  MONO:
+    type: string
+    default: "non-mono"
+    allowed: [ mono, non-mono ]
+
+  MEMBER:
+    type: int
+    stage: [ execution ]
+    default: -1
+    description: "-1: control, 0: ensemble mean, >0: ensemble member $MEMBER"
+
+  ISEED:
+    type: int
+    default: 0
+    stage: [ execution ]
+    description: >
+      Default seed for shum, skeb, and sppt, if specific seeds
+      are not specified.
+
+  SET_STP_SEED:
+    type: bool
+    default: YES
+    description: >
+      Automatically set seeds for SKEB, SHUM, and SPPT at execution
+      time based on simulation date and member.
+
+  DO_SHUM:
+    type: bool
+    default: NO
+    if_present: !FirstTrue
+      - when: !calc DO_SHUM
+        do:
+          ISEED_SHUM:  { type: int,    optional: true }
+          SHUM:        { type: float,  default: -999. }
+          SHUM_TAU:    { type: float,  default: -999. }
+          SHUM_LSCALE: { type: float,  default: -999. }
+      - otherwise: null
+
+  DO_SKEB:
+    type: bool
+    default: NO
+    if_present: !FirstTrue
+      - when: !calc DO_SKEB
+        do:
+          ISEED_SHUM:  { type: int,   optional: true }
+          SKEB_TAU:    { type: float, default: -999. }
+          SKEB_LSCALE: { type: float, default: -999. }
+          SKEBNORM:    { type: int,   default: 1 }
+      - otherwise: null
+
+  DO_SPPT:
+    type: bool
+    default: NO
+    if_present: !FirstTrue
+      - when: !calc DO_SPPT==True
+        do:
+          ISEED_SHUM:  { type: int,   optional: true }
+          SPPT:        { type: float }
+          SPPT_TAU:    { type: float, default: -999. }
+          SPPT_LSCALE: { type: float, default: -999. }
+          SPPT_SFCLIMIT:
+            type: string
+            allowed: [ ".true.", ".false." ]
+            default: ".true."
+      - otherwise: !Message "Don't SPPT"
+
+  RUN_EFCSGRP: { type: bool, default: NO }
+
+  ncld: { type: int, default: 1 }
+  nwat: { type: int, default: 2 }
+
+  zhao_mic: { type: bool, default: YES }
+
+  nh_type: { type: string, default: 'nh' }
+
+  USE_COUPLER_RES: { type: bool, default: NO }
+
+  CDUMP:
+    type: string
+    allowed: [ gfs, gdas ]
+    if_present: !Template
+      DIAG_TABLE: 
+        type: string
+        stages: [ suite ]
+        default: !FirstTrue
+          - when: !calc CDUMP=="gdas"
+            do: !expand "{doc.places.BASE_GSM}/parm/parm_fv3diag/diag_table_da"
+          - when: !calc CDUMP=="gfs"
+            do: !expand "{doc.places.BASE_GSM}/parm/parm_fv3diag/diag_table"
+          - otherwise: !error "Do not know DIAG_TABLE for CDUMP={CDUMP}"
+
+  CASE:
+    type: string
+    allowed: [ 'C48', 'C96', 'C192', 'C384', 'C768', 'C1152', 'C3072' ]
+    if_present: !FirstTrue
+      - when: !calc CASE=='C48'
+        do: !Template
+          DELTIM: { default: 3600, type: int }
+          layout_x: { default: 4, type: int }
+          layout_y: { default: 8, type: int }
+          WRITE_GROUP: { default: 1, type: int }
+          WRTTASK_PER_GROUP: { default: 12, type: int }
+  
+      - when: !calc CASE=='C96'
+        do: !Template
+          DELTIM: { default: 1800, type: int }
+          layout_x: { default: 4, type: int }
+          layout_y: { default: 8, type: int }
+          cdmbgwd:
+            default: "0.125,3.0"
+            type: string
+            description: "mountain blocking and gravity wave drag"
+          WRITE_GROUP: { default: 1, type: int }
+          WRTTASK_PER_GROUP: { default: 12, type: int }
+
+      - when: !calc CASE=='C192'
+        do: !Template
+          DELTIM: { default: 900, type: int }
+          layout_x: { default: 4, type: int }
+          layout_y: { default: 8, type: int }
+          cdmbgwd:
+            default: "0.2,2.5"
+            type: string
+            description: "mountain blocking and gravity wave drag"
+          WRITE_GROUP: { default: 1, type: int }
+          WRTTASK_PER_GROUP: { default: 24, type: int }
+
+      - when: !calc CASE=='C384'
+        do: !Template
+          DELTIM: { default: 450, type: int }
+          layout_x: { default: 4, type: int }
+          layout_y: { default: 8, type: int }
+          cdmbgwd:
+            default: "1.0,1.2"
+            type: string
+            description: "mountain blocking and gravity wave drag"
+          WRITE_GROUP: { default: 2, type: int }
+          WRTTASK_PER_GROUP: { default: 48, type: int }
+  
+      - when: !calc CASE=='C768'
+        do: !Template
+          DELTIM: { default: 225, type: int }
+          layout_x: { default: 8, type: int }
+          layout_y: { default: 16, type: int }
+          cdmbgwd:
+            default: "3.5,0.25" 
+            type: string
+            description: 'mountain blocking and gravity wave drag'
+          WRITE_GROUP: { default: 2, type: int }
+          WRTTASK_PER_GROUP: { default: 96, type: int }
+  
+      - when: !calc CASE=='C1152'
+        do:
+          DELTIM: { default: 150, type: int }
+          layout_x: { default: 8, type: int }
+          layout_y: { default: 16, type: int }
+          WRITE_GROUP: { default: 2, type: int }
+          WRTTASK_PER_GROUP: { default: 120, type: int }
+  
+      - when: !calc CASE=='C3072'
+        do:
+          DELTIM: { default: 90, type: int }
+          layout_x: { default: 16, type: int }
+          layout_y: { default: 32, type: int }
+          WRITE_GROUP: { default: 4, type: int }
+          WRTTASK_PER_GROUP: { default: 120, type: int }
+  
+      - otherwise: null

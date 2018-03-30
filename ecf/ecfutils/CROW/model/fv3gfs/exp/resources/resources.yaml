@@ -1,0 +1,188 @@
+resource_defaults: &resource_defaults
+
+  run_test:
+    resources: !JobRequest
+      - exe: nothing
+        mpi_ranks: 1
+
+  # From if[[...ecen]] block in config.resources:
+  run_ecen:
+    env: { } #*mpi_tuning
+    memory: !FirstTrue
+      - when: !calc doc.platform.name=='WCOSS_C'
+        do: "3072M"
+      - otherwise: ""
+    resources: !JobRequest
+      - exe: placeholder
+        mpi_ranks: 84
+        # max_ppn comes from THEIA.env: 84/12 = 7
+        max_ppn: 7
+        OMP_NUM_THREADS: 2
+
+  run_chgres:
+    env: { }
+    resources:  !JobRequest
+      - exe: time
+        OMP_NUM_THREADS: 12
+        args:
+          - placeholder
+
+  run_nothing: # Special placeholder for "do nothing"
+    env: { }
+    memory: 300M
+    resources:  !JobRequest
+      - exe: nothing
+
+  run_eobs:
+    env: { }
+    memory: !FirstTrue
+      - when: !calc doc.platform.name=='WCOSS_C'
+        do: "3072M"
+      - otherwise: ""
+    resources:  !JobRequest
+      - exe: placeholder
+        mpi_ranks: !calc 12*6
+        max_ppn: 6
+        OMP_NUM_THREADS: 4
+
+  run_eomg:
+    env: { }
+    memory: !FirstTrue
+      - when: !calc doc.platform.name=='WCOSS_C'
+        do: "3072M"
+      - otherwise: ""
+    resources:  !JobRequest
+      - exe: placeholder
+        mpi_ranks: !calc 6*12
+        max_ppn: 6
+        OMP_NUM_THREADS: 2
+
+  run_eupd:
+    env: { }
+    memory: !FirstTrue
+      - when: !calc doc.platform.name=='WCOSS_C'
+        do: "3072M"
+      - otherwise: ""
+    resources:  !JobRequest
+      - exe: placeholder
+        mpi_ranks: !calc 10*12
+        max_ppn: 12
+        OMP_NUM_THREADS: 2
+
+  run_enkf:
+    env: { }
+    resources:  !JobRequest
+      - exe: placeholder
+        mpi_ranks: !calc 10*12
+        max_ppn: 12
+        OMP_NUM_THREADS: 4
+
+  run_efcs:
+    env: { }
+    memory: !FirstTrue
+      - when: !calc doc.platform.name=='WCOSS_C'
+        do: "3072M"
+      - otherwise: ""
+
+  run_epos:
+    env: { }
+    memory: !FirstTrue
+      - when: !calc doc.platform.name=='WCOSS_C'
+        do: "254M"
+      - otherwise: ""
+    resources:  !JobRequest
+      - exe: placeholder
+        mpi_ranks: !calc 7*12
+        max_ppn: 12
+        OMP_NUM_THREADS: 2
+
+  run_prep:
+    env: { }
+    memory: !FirstTrue
+      - when: !calc doc.platform.name=='WCOSS_C'
+        do: "3072M"
+      - otherwise: ""
+    resources:  !JobRequest
+      - exe: placeholder
+        mpi_ranks: 12
+        max_ppn: 12
+        OMP_NUM_THREADS: max
+
+  run_anal:
+    env: { }
+    memory: !FirstTrue
+      - when: !calc doc.platform.name=='WCOSS_C'
+        do: "3072M"
+      - otherwise: ""
+    resources:  !JobRequest
+      - exe: placeholder
+        mpi_ranks: !calc 24*6
+        max_ppn: 6
+        OMP_NUM_THREADS: 2
+
+  run_gsi:
+    env: { }
+    resources:  !JobRequest
+      - exe: placeholder
+        mpi_ranks: !calc 24*6
+        max_ppn: 6
+        OMP_NUM_THREADS: 4
+
+  run_fcst:
+    env: { }
+    memory: !FirstTrue
+      - when: !calc doc.platform.name=='WCOSS_C'
+        do: "3072M"
+      - otherwise: ""
+
+  run_post:
+    env: { }
+    memory: !FirstTrue
+      - when: !calc doc.platform.name=='WCOSS_C'
+        do: "3072M"
+      - otherwise: ""
+    resources:  !JobRequest
+      - exe: placeholder
+        mpi_ranks: !calc 6*12
+        max_ppn: 12
+        OMP_NUM_THREADS: 1
+
+  run_vrfy:
+    env: { }
+    memory: !FirstTrue
+      - when: !calc doc.platform.name=='WCOSS_C'
+        do: "3072M"
+      - otherwise: "16384M"
+    resources:  !JobRequest
+      - exe: placeholder
+        mpi_ranks: 1
+        max_ppn: 1
+        OMP_NUM_THREADS: 2
+
+  run_arch:
+    env: { }
+    memory: "3072M"
+    resources:  !JobRequest
+      - exe: placeholder
+        mpi_ranks: 1
+        max_ppn: 1
+        OMP_NUM_THREADS: 2
+
+  run_earc:
+    env: { }
+    memory: "3072M"
+    resources:  !JobRequest
+      - exe: placeholder
+        mpi_ranks: 1
+        max_ppn: 1
+        OMP_NUM_THREADS: 2
+
+  run_fv3ic:
+    env: { }
+    memory: !FirstTrue
+      - when: !calc doc.platform.name=='WCOSS_C'
+        do: "3072M"
+      - otherwise: ""
+    resources:  !JobRequest
+      - exe: placeholder
+        mpi_ranks: 24

@@ -1,0 +1,44 @@
+action_base: &action_base
+  <<: [ *resource_defaults, *places ]
+  KEEPDATA: NO
+
+  # These are probably just needed by vrfy:
+  ACCOUNT: !calc doc.accounting.cpu_project
+  QUEUE: !calc doc.platform.parallel_accounting.queue
+  QUEUE_ARCH: !calc doc.platform.transfer_accounting.queue
+
+  DONST: NO
+  BASE_NEMSfv3gfs: !calc doc.places.BASE_NEMSfv3gfs
+
+  # FIXME: This should never be used in the scripts.
+  PSLOT: !calc doc.case.experiment_name
+
+  # Variables to import in shell:
+  shell_vars: [ "[A-Z][A-Z0-9_]*$" ]
+
+  # Used to convert resources to shell commands:
+  accounting: !calc doc.platform.parallel_accounting
+  par: !calc doc.platform.parallelism
+  nodes: !calc doc.platform.nodes
+
+  sys_tp: !FirstTrue
+    - when: !calc doc.platform.name=="THEIA"
+      do: "Cray-CS400"
+    - when: !calc doc.platform.name=="WCOSS_C"
+      do: "Cray-XC40"
+    - otherwise: !error Do not know sys_tp for platform {doc.platform.name}
+
+  NCO_NAMING_CONV: !calc doc.gfs_output_settings.NCO_NAMING_CONV
+
+  # FIXME: temporary kludge until scripts are updated to use mpiserial
+  # on all platforms:
+  APRUNCFP: !FirstTrue
+    - when: USE_CFP == 'NO'
+      do: null
+    - when: !calc doc.platform.name=='THEIA'
+      do: "mpirun -np $ncmd"
+    - when: !calc doc.platform.name=='WCOSS_C'
+      do: !expand >
+        aprun -j 1 -n $ncmd -N 1 -d 
+        {resources.total_ranks()} -cc depth
+    - otherwise: !error "I don't know how to run cfp on {doc.platform.name}"

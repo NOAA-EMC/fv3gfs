@@ -1,0 +1,31 @@
+
+eobs: &eobs_action !Action
+  <<: *action_base
+  J_JOB: eobs
+  CASE_ENKF: !calc doc.fv3_enkf_settings.CASE
+  CASE: !calc doc.fv3_gdas_settings.CASE
+  walltime: !timedelta 00:15:00
+  resources: !calc run_eobs.resources
+  memory: !calc run_eobs.memory
+  ANALYSISSH: !expand "{doc.places.BASE_GSI}/scripts/exglobal_analysis_fv3gfs.sh.ecf"
+  APRUN_GSI:  !calc tools.command_without_exe(par,resources,'placeholder')
+
+  shell_vars: [ "[A-Z][A-Z0-9_]*$", "assim_freq", "l.*4d.*" ]
+
+  Inherit: !Inherit
+    - [ doc.gfs_output_settings, "^FH.*|OUTPUT_GRID" ]
+    - [ doc.fv3_enkf_settings, ".*" ]
+    - [ doc.data_assimilation, ".*" ]
+    - [ doc.platform.mpi_tuning, '.*' ]
+    - [ doc.fv3_settings, "LEVS|QUILTING|WRITE_NEMSIOFILE|nst_anl" ]
+    - [ doc.case, "EDATE|SDATE|gfs_cyc" ]
+
+  true_false_vars: [ 'QUILTING', 'WRITE_NEMSIOFILE', 'nst_anl', 'zhao_mic' ]
+
+  NMEM_EOMGGRP: !calc doc.data_assimilation.NMEM_ENKF_GRP_EOMN
+  NTHREADS_GSI: !calc nodes.omp_threads_for(resources[0])
+  NTHSTACK: 1024000000
+  CDUMP: gdas
+# GSI namelist options related to observer for EnKF
+  VERBOSE: YES
+  WRITE_NEMSIOFILE: YES

@@ -1,0 +1,50 @@
+options: &options
+  # Grid size:
+  nx: 400
+  ny: 400
+
+  # User-defined experiment name; should be a-z followed by alphanumeric:
+  experiment_name: expt
+
+  # Scrub area.  Default: auto-detect least used scrub space.
+  scrub_space: !calc doc.platform.least_used_scrub
+  run_dir: !Immediate [ !expand "{scrub_space}/{tools.env('USER')}/{experiment_name}" ]
+
+  # Project for CPU accounting.
+  cpu_project: !calc doc.platform.default_cpu_project
+
+  # Project for storing HPSS data.
+  hpss_project: emc-global
+
+  # Random number seed:
+  seed: 381
+
+  # Hours between cycles:
+  cycle_len: !timedelta 6:00
+
+  # Number of hours to forecast:
+  fcst_len: !timedelta 24:00
+
+  # Time between writes of output files
+  dt_write_fcst: !timedelta 3:00
+
+  # Number of random number generator iterations for forecast &
+  # ensemble forecast, respectively:
+  dt_rand_fcst: 500
+  dt_rand_ens_fcst: 100
+
+  # Locations of CROW and this test suite.
+  HOMEcrow: !calc tools.crow_install_dir()
+  HOMEtest: !calc tools.crow_install_dir('examples/real-workflow')
+
+  # Not configurable yet; do not change.  Number of ensemble members.
+  ens_members: 100
+
+# Executable locations.  Defaults are the exec/ directory within the
+# real-workflow example.
+executables:
+  TEST_EXEC: !expand "{doc.options.HOMEtest}/exec"
+  fcst: !expand "{TEST_EXEC}/mpi/forecast"
+  analysis: !expand "{TEST_EXEC}/mpi/assimilate"
+  post: !expand "{TEST_EXEC}/mpi/post"
+  climatology_init: !expand "{TEST_EXEC}/mpi/climatology_init"

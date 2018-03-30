@@ -1,0 +1,64 @@
+anal_base: &anal_base !Action
+  <<: *action_base
+
+  J_JOB: anal
+  walltime: !timedelta 02:00:00
+  resources: !calc run_anal.resources
+  anal_resources: !calc run_anal.resources
+  memory: !calc run_anal.memory
+  gsi_resources: !calc run_gsi.resources
+  accounting: !calc doc.platform.parallel_accounting
+  assim_freq: 6
+
+  # FIXME: temporary kludge until gsi scripts are updated:
+  APRUN_CALCINC: !FirstTrue
+    - when: !calc doc.platform.name=="THEIA"
+      do: "mpirun -np $ncmd"
+    - when: !calc doc.platform.name=="WCOSS_C"
+      do: !expand "aprun -j 1 -n $ncmd -N 1 -d {NTHREADS_CALCINC} -cc depth"
+    - otherwise: !error "No APRUN_CALCINC for unknown platform {doc.platform.name}"
+  APRUN_CYCLE: !FirstTrue
+    - when: !calc doc.platform.name=="THEIA"
+      do: time
+    - when: !calc doc.platform.name=="WCOSS_C"
+      do: !expand "aprun -j 1 -n $ncmd -N 1 -d {NTHREADS_CYCLE} -cc depth"
+    - otherwise: !error "No APRUN_CALCINC for unknown platform {doc.platform.name}"
+  NTHREADS_CYCLE: 12
+  NTHREADS_CALCINC: 1
+
+  APRUN_GSI:  !calc tools.command_without_exe(par,run_gsi.resources,"placeholder")
+  ANALYSISSH: !expand "{doc.places.BASE_GSI}/scripts/exglobal_analysis_fv3gfs.sh.ecf"
+  NTHREADS_GSI: !calc nodes.omp_threads_for(run_gsi.resources[0])
+  CASE_ENKF: !calc doc.fv3_enkf_settings.CASE
+
+  VERBOSE: YES
+
+  shell_vars: [ "[A-Z][A-Z0-9_]*$", "assim_freq", "sys_tp", "l.*4d.*" ]
+
+anal_gdas_action: &anal_gdas_action !Action
+  <<: *anal_base
+  CDUMP: gdas
+  Template: null
+  Inherit: !Inherit
+    - [ doc.platform.general_env,  ".*" ]
+    - [ doc.fv3_gdas_settings, ".*" ]
+    - [ doc.data_assimilation, ".*" ]
+    - [ doc.gfs_output_settings, "^FH.*|OUTPUT_GRID" ]
+    - [ doc.platform.mpi_tuning, '.*' ]
+    - [ doc.fv3_enkf_settings, "FHCYC" ]
+    - [ doc.fv3_settings, "LEVS|QUILTING|WRITE_NEMSIOFILE|nst_anl" ]
+    - [ doc.case, "EDATE|SDATE|gfs_cyc" ]
+
+anal_gfs_action: &anal_gfs_action !Action
+  <<: *anal_base
+  CDUMP: gfs
+  Template: null
+  Inherit: !Inherit
+    - [ doc.platform.general_env,  ".*" ]
+    - [ doc.fv3_gfs_settings, ".*" ]
+    - [ doc.data_assimilation, ".*" ]
+    - [ doc.gfs_output_settings, "^FH.*|OUTPUT_GRID" ]
+    - [ doc.platform.mpi_tuning, '.*' ]
+    - [ doc.fv3_enkf_settings, "FHCYC" ]
+    - [ doc.fv3_settings, "LEVS|QUILTING|WRITE_NEMSIOFILE|nst_anl" ]
+    - [ doc.case, "EDATE|SDATE|gfs_cyc" ]

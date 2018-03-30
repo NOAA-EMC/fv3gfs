@@ -1,0 +1,56 @@
+post_base: &post_base !Action
+  <<: *action_base
+  J_JOB: post
+  resources: !calc run_post.resources
+  memory: !calc run_post.memory
+
+  APRUN_DWN: !calc tools.command_without_exe(par,resources,'placeholder')
+  APRUN_NP: !calc tools.command_without_exe(par,resources,'placeholder')
+  CASE_ENKF: !calc doc.fv3_enkf_settings.CASE
+  DO_GDAS_FCST_POST: YES
+
+  FCSTEXEC: "fv3_gfs_nh.prod.32bit.x"
+  FLXF: YES
+  GFS_DOWNSTREAM: YES
+  GOESF: NO
+  GPOST: YES
+  GTGF: NO
+  NTHREADS_DWN: 2
+  NTHREADS_NP: 1
+  downset: 1
+  shell_vars: [ "[A-Z][A-Z0-9_]*$", "assim_freq", "l.*4d.*", "downset" ]
+  true_false_vars: [ 'QUILTING', 'WRITE_NEMSIOFILE' ]
+
+post_gfs: &post_gfs_action !Action
+  <<: *post_base
+  CDUMP: gfs
+  Template: null
+  Inherit: !Inherit
+    - [ doc.fv3_gfs_settings, ".*" ]
+    - [ doc.data_assimilation, ".*" ]
+    - [ doc.gfs_output_settings, "^FH.*|OUTPUT_GRID" ]
+    - [ doc.platform.general_env, ".*" ]
+    - [ doc.platform.mpi_tuning, ".*" ]
+    - [ doc.case, "EDATE|SDATE|gfs_cyc|DO_RELOCATE|DO_MAKEPREPBUFR" ]
+  walltime: !timedelta 02:35:00
+  FHOUT: !calc doc.gfs_output_settings.FHOUT_GFS
+  FHMAX: !calc doc.gfs_output_settings.FHMAX_GFS
+  FHMIN: !calc doc.gfs_output_settings.FHMIN_GFS
+  QUILTING: !calc doc.fv3_gfs_settings.QUILTING
+
+post_gdas: &post_gdas_action !Action
+  <<: *post_base
+  CDUMP: gdas
+  Template: null
+  Inherit: !Inherit
+    - [ doc.fv3_gdas_settings, ".*" ]
+    - [ doc.data_assimilation, ".*" ]
+    - [ doc.gfs_output_settings, "^FH.*|OUTPUT_GRID" ]
+    - [ doc.platform.general_env, ".*" ]
+    - [ doc.platform.mpi_tuning, ".*" ]
+    - [ doc.case, "EDATE|SDATE|gfs_cyc|DO_RELOCATE|DO_MAKEPREPBUFR" ]
+  walltime: !timedelta 00:25:00
+  FHOUT: !calc doc.gfs_output_settings.FHOUT_GDAS
+  FHMAX: !calc doc.gfs_output_settings.FHMAX_GDAS
+  FHMIN: !calc doc.gfs_output_settings.FHMIN_GDAS
+  QUILTING: !calc doc.fv3_gdas_settings.QUILTING

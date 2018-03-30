@@ -1,0 +1,1 @@
+NO_SUCH_VARIABLe_NAME=/gpfs/hps3/emc/global/noscrub/emc.glopara/svn/obsproc/releases/obsproc_global_RB-3.0.0/scripts/exglobal_makeprepbufr.sh.ecf

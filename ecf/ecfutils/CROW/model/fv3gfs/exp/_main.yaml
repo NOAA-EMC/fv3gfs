@@ -1,0 +1,11 @@
+case_yaml: null # replaced by setup_case.py
+user_yaml: null # replaced by setup_case.py
+include:
+  - resources
+  - platforms
+  - validation
+  - defaults
+  - !calc doc.user_yaml
+  - !calc doc.case_yaml
+  - actions
+  - runtime

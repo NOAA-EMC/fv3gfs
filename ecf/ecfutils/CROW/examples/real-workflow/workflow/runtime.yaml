@@ -1,0 +1,14 @@
+runtime: &runtime
+  com: !calc tools.env('COMINtest')
+  prior_com: !calc tools.env('COMOLDtest')
+
+clock: &clock !Clock
+  start: 2017-08-15t00:00:00
+  end: 2017-08-20t18:00:00
+  step: !timedelta 06:00
+  now: !FirstTrue
+    - do: !calc tools.from_YMDH(tools.env('YMDH'))
+      when: !calc tools.have_env('YMDH')
+    - do: null
+      when: true
+    - otherwise: !error should not get here

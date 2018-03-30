@@ -1,0 +1,33 @@
+arch_base: &arch_base !Action
+  <<: *action_base
+  J_JOB: arch
+  walltime: !timedelta 06:00:00
+  resources: !calc run_arch.resources
+  memory: !calc run_arch.memory
+  accounting: !calc doc.platform.transfer_accounting
+
+  CASE_ENKF: !calc doc.fv3_enkf_settings.case
+  CASE_ENKF: "C96"
+  WRITE_NEMSIOFILE: YES
+
+  shell_vars: [ "[A-Z][A-Z0-9_]*$", "assim_freq", "sys_tp", "l.*4d.*" ]
+
+arch_gfs_action: &arch_gfs_action !Action
+  <<: [ *fv3_gfs_settings, *data_assimilation, *arch_base ]
+  CDUMP: gfs
+  Inherit: !Inherit
+    - [ doc.gfs_output_settings, "^FH.*|OUTPUT_GRID" ]
+    - [ doc.data_assimilation, ".*" ]
+    - [ doc.platform.general_env, ".*" ]
+    - [ doc.platform.mpi_tuning, ".*" ]
+    - [ doc.case, "EDATE|SDATE|gfs_cyc|DO_RELOCATE|DO_MAKEPREPBUFR" ]
+
+arch_gdas_action: &arch_gdas_action !Action
+  <<: [ *fv3_gdas_settings, *data_assimilation, *arch_base ]
+  CDUMP: gdas
+  Inherit: !Inherit
+    - [ doc.gfs_output_settings, "^FH.*|OUTPUT_GRID" ]
+    - [ doc.data_assimilation, ".*" ]
+    - [ doc.platform.general_env, ".*" ]
+    - [ doc.platform.mpi_tuning, ".*" ]
+    - [ doc.case, "EDATE|SDATE|gfs_cyc|DO_RELOCATE|DO_MAKEPREPBUFR" ]

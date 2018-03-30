@@ -1,0 +1,8 @@
+include:
+  - "config*.yaml"
+  - "*_validator.yaml"
+  - schedulers.yaml
+  - rocoto.yaml
+  - task.yaml
+  - "*.yaml"
+  - suite_def.yaml

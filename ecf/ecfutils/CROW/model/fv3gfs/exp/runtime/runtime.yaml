@@ -1,0 +1,28 @@
+runtime: &runtime
+  com: !calc tools.env('COMINtest')
+  prior_com: !calc tools.env('COMOLDtest')
+
+clock: &clock !Clock
+  start: !calc doc.case.SDATE
+  end: !calc doc.case.EDATE
+  step: !timedelta 06:00
+  now: !FirstTrue
+    - do: !calc tools.from_YMDH(tools.env('CDATE'))
+      when: !calc tools.have_env('CDATE')
+    - otherwise: null
+
+clock2: !Clock
+  start: !calc doc.case.SDATE
+  end: !calc doc.case.EDATE
+  step: !timedelta 06:00
+  now: !FirstTrue
+    - do: !calc tools.from_YMDH(tools.env('CDATE'))
+      when: !calc tools.have_env('CDATE')
+    - otherwise: null
+
+test1:
+  test2:
+    test3: !FirstTrue
+      - do: !calc tools.from_YMDH(tools.env('CDATE'))
+        when: !calc tools.have_env('CDATE')
+      - otherwise: null

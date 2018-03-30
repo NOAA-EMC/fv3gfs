@@ -1,0 +1,17 @@
+no_enkf: &no_enkf
+  Template: *fv3_settings_template
+  CDUMP: gdas
+  CASE: !calc doc.fv3_gdas_settings.CASE
+  LEVS: !calc doc.fv3_gdas_settings.LEVS
+
+no_gdas: &no_gdas
+  Template: *fv3_settings_template
+  CDUMP: gdas
+  CASE: !calc doc.fv3_gfs_settings.CASE
+  LEVS: !calc doc.fv3_gfs_settings.LEVS
+
+no_data_assimilation: &no_data_assimilation
+  Template: *data_assimilation_template
+
+no_prepbufr: &no_prepbufr
+  Template: *obsproc_template

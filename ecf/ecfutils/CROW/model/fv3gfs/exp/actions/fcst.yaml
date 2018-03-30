@@ -1,0 +1,85 @@
+fcst_base: &fcst_base !Action
+  <<: *action_base
+  J_JOB: fcst
+  fcst_resources: !JobRequest
+    - exe: placeholder
+      mpi_ranks: !calc "layout_x*layout_y*6"
+      OMP_NUM_THREADS: 2
+  resources: !calc fcst_resources
+  memory: !calc run_fcst.memory
+  resources_regrid_nemsio: !JobRequest
+    - exe: placeholder
+      mpi_ranks: !calc doc.fv3_settings.LEVS
+      max_ppn: !calc nodes.max_ranks_per_node(fcst_resources[0])
+  true_false_vars: [ 'QUILTING', 'WRITE_NEMSIOFILE' ]
+  shell_vars: [ "[A-Z][A-Z0-9_]*$", "assim_freq", "l.*4d.*" ]
+
+  APRUN_REGRID_NEMSIO: !calc |
+    tools.command_without_exe(
+      par,resources_regrid_nemsio,'placeholder')
+  APRUN_FV3: !calc tools.command_without_exe(par,fcst_resources,'placeholder')
+  APRUN_REMAP: !calc APRUN_FV3
+  ATARDIR: "/NCEPDEV/emc-global/1year/Samuel.Trahan/THEIA/scratch/wham"
+
+  CASE_ENKF: !calc doc.fv3_enkf_settings.CASE
+
+  FCSTEXEC: "fv3_gfs_nh.prod.32bit.x"
+
+  KEEPDATA: NO
+
+  NTHREADS_FV3: !calc |
+    nodes.omp_threads_for(resources[0])
+  NTHREADS_REGRID_NEMSIO: !calc |
+    nodes.omp_threads_for(resources_regrid_nemsio[0])
+  NTHREADS_REMAP: !calc NTHREADS_FV3
+  NTASKS_FV3: !calc resources.total_ranks()
+
+  PSLOT: !calc doc.case.experiment_name
+
+  REMAPSH: !expand "{doc.places.BASE_GSM}/ush/fv3gfs_remap.sh"
+  TYPE: "nh"
+  USE_COUPLER_RES: NO
+  VERBOSE: YES
+  WRITE_NEMSIOFILE: YES
+
+  true_false_vars: [ 'QUILTING', 'WRITE_NEMSIOFILE', 'nst_anl', 'zhao_mic' ]
+
+  # Variables to import in shell:
+  shell_vars: [ "[A-Z][A-Z0-9_]*$", 'restart_interval' ]
+
+  cores_per_node: 24
+  restart_interval: 6
+
+  USE_COUPLER_RES: NO
+
+  restart_interval: !FirstTrue
+    - when: !calc CDUMP=="gdas"
+      do: 6
+    - otherwise: 0
+
+
+  master_grid: !calc doc.case.master_grid
+
+fcst_gdas: &fcst_gdas_action !Action
+  <<: *fcst_base
+  Template: *fv3_settings_template
+  Inherit: !Inherit
+    - [ doc.fv3_gdas_settings, ".*" ]
+    - [ doc.data_assimilation, ".*" ]
+    - [ doc.gfs_output_settings, ".*" ]
+    - [ doc.platform.mpi_tuning, ".*" ]
+    - [ doc.case, "EDATE|SDATE|gfs_cyc|DO_RELOCATE|DO_MAKEPREPBUFR" ]
+  CDUMP: gdas
+  walltime: !timedelta 00:25:00
+
+fcst_gfs: &fcst_gfs_action !Action
+  <<: [ *fv3_gfs_settings, *data_assimilation, *fcst_base ]
+  Template: *fv3_settings_template
+  Inherit: !Inherit
+    - [ doc.fv3_gfs_settings, ".*" ]
+    - [ doc.data_assimilation, ".*" ]
+    - [ doc.gfs_output_settings, ".*" ]
+    - [ doc.platform.mpi_tuning, ".*" ]
+    - [ doc.case, "EDATE|SDATE|gfs_cyc|DO_RELOCATE|DO_MAKEPREPBUFR" ]
+  CDUMP: gfs
+  walltime: !timedelta 02:35:00

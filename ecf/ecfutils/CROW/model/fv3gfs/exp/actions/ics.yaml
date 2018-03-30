@@ -1,0 +1,38 @@
+fv3ics: &fv3ics_action !Action
+  <<: *action_base
+  J_JOB: fv3ic
+  walltime: !timedelta 00:30:00
+  resources: !calc run_fv3ic.resources
+  memory: !calc run_fv3ic.memory
+  CASE: !calc doc.fv3_settings.CASE
+
+  shell_vars: [ "[A-Z][A-Z0-9_]*$", "assim_freq", "sys_tp", "l.*4d.*" ]
+  Inherit: !Inherit
+    - [ doc.platform.general_env,  ".*" ]
+    - [ doc.fv3_gfs_settings, ".*" ]
+    - [ doc.data_assimilation, ".*" ]
+    - [ doc.gfs_output_settings, "^FH.*|OUTPUT_GRID" ]
+    - [ doc.platform.mpi_tuning, '.*' ]
+    - [ doc.fv3_enkf_settings, "FHCYC" ]
+    - [ doc.fv3_settings, "LEVS|QUILTING|WRITE_NEMSIOFILE|nst_anl" ]
+    - [ doc.case, "EDATE|SDATE|gfs_cyc" ]
+
+fv3ics_df: &fv3ics_df_action !Action
+  <<: *fv3ics_action
+  J_JOB: fv3ic_df
+
+getics: &getics_action !Action
+  <<: *action_base
+  J_JOB: getic
+  walltime: !timedelta 06:00:00
+  resources: !calc run_arch.resources
+  memory: !calc run_arch.memory
+  accounting: !calc doc.platform.transfer_accounting
+
+  ics_from: !calc doc.case.ics_from
+  parexp: !calc doc.case.parexp
+  HPSS_PAR_PATH: !calc doc.case.HPSS_PAR_PATH
+  ICSDIR: !calc doc.places.ICSDIR
+
+  # Variables to import in shell:
+  shell_vars: [ "[A-Z][A-Z0-9_]*$", "ics_from", "parexp", "HPSS_PAR_PATH" ]

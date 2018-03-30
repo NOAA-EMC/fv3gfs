@@ -1,0 +1,70 @@
+efcs: &efcs_action !Action
+  <<: [ *action_base, *places ]
+  Template: *fv3_settings
+
+  J_JOB: efcs
+  walltime: !timedelta 00:25:00
+  efcs_resources: !JobRequest
+    - exe: placeholder
+      mpi_ranks: !calc "layout_x*layout_y*6"
+      OMP_NUM_THREADS: 1
+  resources: !calc efcs_resources
+  memory: !calc run_efcs.memory
+  APRUN_FV3: !calc tools.command_without_exe(par,resources,'placeholder')
+  resources_regrid_nemsio: !JobRequest
+    - exe: placeholder
+      mpi_ranks: !calc doc.fv3_settings.LEVS
+      max_ppn: !calc nodes.max_ranks_per_node(efcs_resources[0])
+  APRUN_REGRID_NEMSIO: !calc |
+    tools.command_without_exe(
+      par,resources_regrid_nemsio,'placeholder')
+  ATARDIR: "/NCEPDEV/emc-global/1year/Samuel.Trahan/THEIA/scratch/wham"
+
+  Inherit: !Inherit
+    - [ doc.gfs_output_settings, "^FH.*|OUTPUT_GRID" ]
+    - [ doc.fv3_enkf_settings, ".*" ]
+    - [ doc.data_assimilation, ".*" ]
+    - [ doc.fv3_settings, "LEVS|QUILTING|WRITE_NEMSIOFILE|nst_anl" ]
+    - [ doc.case, "EDATE|SDATE|gfs_cyc" ]
+
+  true_false_vars: [ 'QUILTING', 'WRITE_NEMSIOFILE', 'nst_anl', 'zhao_mic' ]
+
+  CASE: !calc doc.fv3_enkf_settings.CASE
+  CASE_ENKF: !calc CASE
+  CDUMP: gdas
+  NTASKS_FV3: !calc resources.total_ranks()
+  NTHREADS_FV3: 1
+  NTHREADS_REGRID_NEMSIO: 1
+
+  FCSTEXEC: "fv3_gfs_nh.prod.32bit.x"
+  KEEPDATA: NO
+  NMEM_EFCSGRP: 10
+  NTHSTACK: 1024000000
+
+  GROUP_NUMBER: null  # replaced in workflow
+  ENSGRP: !expand "{GROUP_NUMBER:02d}"
+
+  SMOOTH_ENKF: YES
+  TYPE: !calc doc.fv3_enkf_settings.nh_type
+
+  VERBOSE: YES
+  WRITE_NEMSIOFILE: YES
+
+  master_grid: !calc doc.case.master_grid
+
+  DO_SKEB: NO
+  SKEB: -999.
+  SKEB_TAU: 21600.
+  SKEB_LSCALE: 500000.
+  SKEBNORM: 1
+  DO_SHUM: YES
+  SHUM: 0.006
+  SHUM_TAU: 21600.
+  SHUM_LSCALE: 500000.
+  DO_SPPT: YES
+  SPPT: 0.5
+  SPPT_TAU: 21600.
+  SPPT_LSCALE: 500000.
+  SPPT_LOGIT: ".true."
+  SPPT_SFCLIMIT: ".true."
+

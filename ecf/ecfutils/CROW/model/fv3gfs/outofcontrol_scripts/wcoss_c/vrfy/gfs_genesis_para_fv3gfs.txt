@@ -1,0 +1,1 @@
+GENESISSH=/gpfs/hps3/emc/global/noscrub/emc.glopara/svn/gfs/q3fy17/ens_tracker.v2.0.1/gfs_genesis_para_fv3gfs.sh

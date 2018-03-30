@@ -1,0 +1,123 @@
+parallelism:
+  physical_cores_per_node: 24
+  logical_cpus_per_core: 2
+  hyperthreading_allowed: true
+
+options: &options
+  seed: 381
+  nx: 200
+  ny: 200
+  ens_members: 20
+
+  start_time: !timedelta 0:00
+  cycle_len: !timedelta 6:00
+  fcst_len: !timedelta 24:00
+
+  dt_write_fcst: !timedelta 3:00
+
+  dt_rand_fcst: 500
+  dt_rand_ens_fcst: 100
+
+  com: !expand ./com/{doc.clock.now:%Y%m%d%H}
+  prior_com: !expand ./com/{doc.clock.prior(1):%Y%m%d%H}
+
+clock: &clock !Clock
+  start:    2017-10-03t12:00:00 # NOTE: first cycle is climatology
+  end:      2017-10-04t06:00:00
+  step:     !timedelta  6:00:00
+
+########################################################################
+
+# Actions
+
+clim_init: &clim_init !Action
+  <<: *options
+  namelist: !expand |
+    &settings
+      nx={nx}
+      ny={ny}
+      global_seed={seed}
+      outfile={outfile}
+    /
+  resources:
+    - exe: "./climatology_init"
+      mpi_ranks: 24
+  outfile: "clim-init.grid"
+
+generic_fcst: &generic_fcst !Action
+  <<: *options
+  dt_rand: !calc dt_rand_fcst
+  dt_write: !calc dt_write_fcst
+  namelist: !expand |
+    &settings
+      nx={nx}
+      ny={ny}
+      infile={tools.fort(infile)}
+      outfile_format={tools.fort(outfile_format)}
+      dt_write={round(tools.as_seconds(dt_write)/3600)}
+      start_time={round(tools.as_seconds(start_time)/3600)}
+      end_time={round(tools.as_seconds(end_time)/3600)}
+      global_seed={seed}
+      dt_rand={dt_rand}
+    /
+  resources:
+    - exe: "./forecast"
+      mpi_ranks: 24
+
+assimilate: &assimilate !Action
+  <<: *options
+  member_input: member_%06d.grid
+  fcst_len_int: !calc round(tools.as_seconds(fcst_len)/3600)
+  guess_in: !expand "{prior_com}/fcst_{fcst_len_int:06d}.grid"
+  namelist: !expand |
+    &settings
+      nx = {nx}
+      ny = {ny}
+      members = {ens_members}
+      analysis_out = "analysis.grid"
+      ensemble_format = "member_######.grid"
+      guess_in = {tools.fort(guess_in)}
+    /
+  resources:
+    - exe: "./assimilate"
+      mpi_ranks: 24
+
+post: &post !Action
+  <<: *options
+  namelist: !expand |
+    &settings
+      nx = {nx}
+      ny = {ny}
+      infile = {tools.fort(infile)}
+    /
+  resources:
+    - exe: "./post"
+      mpi_ranks: 24
+  infile: null
+
+# ----------------------------------------------------------------------
+
+# Specific types of forecast
+  
+# Ensemble forecast
+ens_fcst: &ens_fcst !Action
+  <<: *generic_fcst
+  member_id: null
+  dt_write: !calc doc.options.cycle_len
+  start_time: !calc doc.clock.now-doc.clock.start
+  end_time: !calc doc.clock.next(1)-doc.clock.start
+  infile: !expand "{prior_com}/analysis.grid"
+  seed: !calc doc.options.seed + member_id
+  cyc_len_int: !calc round(tools.as_seconds(doc.options.cycle_len)/3600)
+  ens_result: !expand "output_{cyc_len_int:06d}.grid"
+  outfile_format: "output_######.grid"
+
+# Deterministic forecast
+fcst: &fcst !Action
+  <<: *generic_fcst
+  start_time: !calc doc.clock.now-doc.clock.start
+  end_time: !calc start_time+fcst_len
+  outfile_format: "fcst_######.grid"
+  infile: !expand "{com}/analysis.grid"
+
+  

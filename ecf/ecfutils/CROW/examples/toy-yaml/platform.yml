@@ -1,0 +1,76 @@
+theia: &theia !Platform
+  queue: batch
+  machine: THEIA
+  ACCOUNT: fv3-cpu
+  QUEUE: batch
+  QUEUE_ARCH: service
+  HPSS_PROJECT: emc-global
+  BASE_SVN: /scratch4/NCEPDEV/global/save/glopara/svn
+  BASE_GFS: /scratch4/NCEPDEV/global/save/glopara/svn/gfs/branches/gfs_q3fy17/global_shared.v14.1.0
+  detect: !calc tools.isdir('/scratch4') and tools.isdir('/scratch3')
+  scrub: !FirstMax
+    - do: /scratch3/NCEPDEV/stmp1
+      when: !calc tools.panasas_gb(do)
+    - do: /scratch3/NCEPDEV/stmp2
+      when: !calc tools.panasas_gb(do)
+    - do: /scratch4/NCEPDEV/stmp3
+      when: !calc tools.panasas_gb(do)
+    - do: /scratch4/NCEPDEV/stmp4
+      when: !calc tools.panasas_gb(do)
+
+wcoss_cray: &wcoss_cray !Platform
+  queue: dev
+  machine: THEIA
+  ACCOUNT: fv3-cpu
+  QUEUE: batch
+  QUEUE_ARCH: service
+  HPSS_PROJECT: emc-global
+  BASE_SVN: /scratch4/NCEPDEV/global/save/glopara/svn
+  BASE_GFS: /scratch4/NCEPDEV/global/save/glopara/svn/gfs/branches/gfs_q3fy17/global_shared.v14.1.0
+  scrub: !FirstMax
+    - do: /gpfs/hps2/ptmp
+      when: !calc tools.gpfs_gb(do,'hps2-ptmp','hps2')
+    - do: /gpfs/hps3/ptmp
+      when: !calc tools.gpfs_gb(do,'hps3-ptmp','hps3')
+  detect: !calc tools.isdir('/gpfs/hps') and tools.isfile('/etc/SuSE-release')
+
+wcoss_ibm: &wcoss_ibm !Platform
+  queue: dev
+  machine: THEIA
+  ACCOUNT: fv3-cpu
+  QUEUE: batch
+  QUEUE_ARCH: service
+  HPSS_PROJECT: emc-global
+  BASE_SVN: /scratch4/NCEPDEV/global/save/glopara/svn
+  BASE_GFS: /scratch4/NCEPDEV/global/save/glopara/svn/gfs/branches/gfs_q3fy17/global_shared.v14.1.0
+  mmlsquota: /usr/lpp/mmfs/bin/mmlsquota
+
+  tide_gyre_tg: !FirstTrue
+    - do: g
+      when: !calc tools.isdir('/gpfs/gd1')
+    - do: t
+      when: !calc tools.isdir('/gpfs/td1')
+    - otherwise: !error Cannot determine if this is Tide or Gyre
+
+  scrub: !FirstMax
+    - do: /ptmpd1
+      when: !calc tools.gpfs_gb(do,'ptmp-d1','gpfs-'+tide_gyre_tg+'d1',mmlsquota)
+    - do: /ptmpd2
+      when: !calc tools.gpfs_gb(do,'ptmp-d2','gpfs-'+tide_gyre_tg+'d2',mmlsquota)
+    - do: /ptmpp1
+      when: !calc tools.gpfs_gb(do,'ptmp-p1','gpfs-'+tide_gyre_tg+'p1',mmlsquota)
+    - do: /ptmpd3
+      when: !calc tools.gpfs_gb(do,'ptmp-d3','gpfs-'+tide_gyre_tg+'d3',mmlsquota)
+    - do: /ptmpp2
+      when: !calc tools.gpfs_gb(do,'ptmp-p2','gpfs-'+tide_gyre_tg+'p2',mmlsquota)
+
+  detect: !calc tools.isdir('/gpfs/hps') and tools.isfile('/etc/redhat-release')
+
+platform: !FirstTrue
+  - do: *wcoss_cray
+    when: !calc do.detect
+  - do: *theia
+    when: !calc do.detect
+  - do: *wcoss_ibm
+    when: !calc do.detect
+  - otherwise: !error This platform is unsupported or unknown.

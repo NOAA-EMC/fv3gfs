@@ -1,0 +1,1 @@
+class CROWException(Exception): pass

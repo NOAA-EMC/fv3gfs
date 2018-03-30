@@ -1,0 +1,7 @@
+final: &final_action !Action
+  <<: *action_base
+  walltime: !timedelta 00:03:00
+  resources: !calc run_nothing.resources
+  memory: !calc run_nothing.memory
+  accounting: !calc doc.platform.serial_accounting
+  J_JOB: /bin/true

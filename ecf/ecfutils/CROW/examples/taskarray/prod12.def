@@ -1,0 +1,61 @@
+suite prod12
+  task simple_task
+  endtask
+  family my_array
+    trigger ./simple_task == complete
+    task task_n1_la
+    endtask
+    task task_n1_lb
+    endtask
+    task task_n1_lc
+    endtask
+    task task_n2_la
+    endtask
+    task task_n2_lb
+    endtask
+    task task_n2_lc
+    endtask
+    task task_n3_la
+    endtask
+    task task_n3_lb
+    endtask
+    task task_n3_lc
+    endtask
+    task tusk_n1_la
+      trigger ./task_n1_la == complete
+    endtask
+    task tusk_n1_lb
+      trigger ./task_n1_lb == complete
+    endtask
+    task tusk_n1_lc
+      trigger ./task_n1_lc == complete
+    endtask
+    task tusk_n2_la
+      trigger ./task_n2_la == complete
+    endtask
+    task tusk_n2_lb
+      trigger ./task_n2_lb == complete
+    endtask
+    task tusk_n2_lc
+      trigger ./task_n2_lc == complete
+    endtask
+    task tusk_n3_la
+      trigger ./task_n3_la == complete
+    endtask
+    task tusk_n3_lb
+      trigger ./task_n3_lb == complete
+    endtask
+    task tusk_n3_lc
+      trigger ./task_n3_lc == complete
+    endtask
+    task num_n1
+      trigger ./task_n1_la == complete and ./task_n1_lb == complete and ./task_n1_lc == complete
+    endtask
+    task num_n2
+      trigger ./task_n2_la == complete and ./task_n2_lb == complete and ./task_n2_lc == complete
+    endtask
+    task num_n3
+      trigger ./task_n3_la == complete and ./task_n3_lb == complete and ./task_n3_lc == complete
+    endtask
+  endfamily
+endsuite

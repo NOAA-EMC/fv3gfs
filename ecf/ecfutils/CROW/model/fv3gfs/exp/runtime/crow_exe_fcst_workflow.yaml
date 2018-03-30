@@ -1,0 +1,92 @@
+crow_exe_fcst_workflow: !Cycle
+  Rocoto: *Rocoto
+
+  Clock: *clock
+
+  ICSDIR_CYC: !calc |
+    doc.places.ICSDIR+"{cycle:%Y%m%d%H}/gfs/"+doc.fv3_gfs_settings.CASE+"/INPUT/"
+
+  ics: !Family
+    getics: !Task
+      Perform:
+        <<: *getics_action
+        CDUMP: gfs
+      Rocoto: *task_template
+
+    fv3ics: !Task
+      Perform: 
+        <<: *fv3ics_df_action
+        CDUMP: gfs
+      Rocoto: *task_template
+      Trigger: !Depend getics
+
+
+      gfs_ctrl_nc: !OutputSlot { Loc: !calc suite.ICSDIR_CYC+"gfs_ctrl.nc" }
+      output_data_tiles: !OutputSlot
+        tile: [ 1, 2, 3, 4, 5, 6 ]
+        kind: [ sfc_data, gfs_data ]
+        Loc: !calc suite.ICSDIR_CYC+"{kind}.tile{tile}.nc"
+
+  gfs: !Family
+    Trigger: !Depend ics
+
+    fcst: !Task
+      Perform: *crow_exe_fcst_gfs_action
+      Rocoto: *task_template
+
+      COMOUT: !calc |
+        doc.places.ROTDIR+"/gfs.{cycle:%Y%m%d}/{cycle:%H}/"
+
+      # Inputs from fv3ic
+      gfs_ctrl_nc: !InputSlot
+        Out: !Message up.up.ics.fv3ics.gfs_ctrl_nc
+      input_data_tiles: !InputSlot
+        Out: !Message up.up.ics.fv3ics.output_data_tiles(tile=tile,kind=kind)
+        tile: [ 1, 2, 3, 4, 5, 6 ]
+        kind: [ sfc_data, gfs_data ]
+
+      coupler_res: !OutputSlot
+        dt_end: !calc Perform.restart_dt
+        Loc: !calc COMOUT+"RESTART/"+"{cycle+dt_end:%Y%m%d.%H%M%S}.coupler.res"
+
+      restart_time_tiles: !OutputSlot
+        dt_end: !calc Perform.restart_dt
+        tile: [ 1, 2, 3, 4, 5, 6 ]
+        kind:
+          - fv_core.res
+          - fv_srf_wnd.res
+          - fv_tracer.res
+          - phy_data
+          - sfc_data
+        Loc: !calc COMOUT+"RESTART/"+"{cycle+dt_end:%Y%m%d.%H%M%S}.{kind}.tile{tile}.nc"
+
+      untimed_tiles: !OutputSlot
+        tile: [ 1, 2, 3, 4, 5, 6 ]
+        kind:
+          - atmos_4xdaily
+          - atmos_static
+          - grid_spec
+          - nggps2d
+          - nggps3d
+        Loc: !calc COMOUT+"{kind}.tile{tile}.nc"
+
+    post: !Task
+      Perform: *post_gfs_action
+      Rocoto: *task_template
+      Trigger: !Depend fcst
+    
+    vrfy: !Task
+      Perform: *vrfy_gfs_action
+      Rocoto: *task_template
+      Trigger: !Depend post
+
+  arch: !Task
+    Perform:
+      <<: *arch_gfs_action
+      CDUMP: gfs
+    Rocoto: *task_template
+    Trigger: !Depend gfs
+
+  final: !Task
+    Perform: *final_action
+    Rocoto: *task_template

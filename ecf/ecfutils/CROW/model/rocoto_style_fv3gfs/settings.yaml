@@ -1,0 +1,64 @@
+
+## initial_directory: location from which the setup script was run.
+initial_directory: !calc ( tools.realpath(tools.abspath(".")) )
+
+config_base:
+  # These are initialized from config.base:
+  FHMAX_GFS: !Immediate [ !calc int(tools.env("FHMAX_GFS")) ]
+  PSLOT:     !Immediate [ !calc tools.env("PSLOT") ]
+  EXPDIR:    !Immediate [ !calc tools.env("EXPDIR") ]
+  ROTDIR:    !Immediate [ !calc tools.env("ROTDIR") ]
+  RUNDIR:    !Immediate [ !calc tools.env("RUNDIR") ]
+  HOMEgfs:   !Immediate [ !calc tools.env("HOMEgfs") ]
+  CASE:      !Immediate [ !calc tools.env("CASE") ]
+  CASE_ENKF: !Immediate [ !calc tools.env("CASE_ENKF") ]
+  SDATE:     !Immediate [ !calc tools.env("SDATE") ]
+  EDATE:     !Immediate [ !calc tools.env("EDATE") ]
+  
+settings:
+  resource_file: !expand >-
+    resources_{doc.config_base.CASE}_{doc.config_base.CASE_ENKF}.yaml
+
+  HOMEgfs: !calc doc.config_base.HOMEgfs
+  COM: !calc doc.config_base.ROTDIR
+  EXPDIR: !calc doc.config_base.EXPDIR
+  DATAROOT: !calc doc.config_base.RUNDIR
+  experiment_name: !calc doc.config_base.PSLOT
+
+  NMEM_ENKF: 20
+  ENKF_GROUPS: 2
+  NMEM_EOMGGRP: 4
+  NMEM_EFCSGRP: 10
+  NMEM_EARCGRP: 10
+
+  ENKF_INNOVATE_GROUPS: !calc ( NMEM_ENKF // NMEM_EOMGGRP )
+  ENKF_FORECAST_GROUPS: !calc ( NMEM_ENKF // NMEM_EFCSGRP )
+  ENKF_ARCHIVE_GROUPS: !calc ( NMEM_ENKF // NMEM_EARCGRP )
+
+  ECF_HOME: !calc ( tools.env('ECF_HOME') )
+  ROCOTO_HOME: !calc ( doc.config_base.EXPDIR )
+  layout_x: 4
+  layout_y: 6
+  WRITE_GROUP: 2
+  WRTTASK_PER_GROUP: 24
+  QUEUE: dev
+  PROJECT: FV3GFS-T2O
+  QUEUESERV: dev_transfer
+  QUEUESHARED: dev_shared
+
+  DUMPDIR: "/gpfs/tp1/emc/globaldump"
+
+  start_date: !calc tools.strptime(doc.config_base.SDATE,"%Y%m%d%H")
+  end_date:  !calc tools.strptime(doc.config_base.EDATE,"%Y%m%d%H")
+  start_date_gfs: !calc ( start_date+tools.to_timedelta('6:00:00') )
+  end_date_gfs: !calc end_date
+  interval_gfs: !timedelta "6:00:00"
+  #forecast_hours: !calc tools.seq(0,120,1)+tools.seq(123,240,3)+tools.seq(240,384,12)
+  forecast_hours: !calc tools.seq(0,doc.config_base.FHMAX_GFS,6)
+  gdas_hours: !calc tools.seq(0,9,3)
+
+  max_job_tries: 1
+  realtime: True
+  archive_to_hpss: True
+
+########################################################################

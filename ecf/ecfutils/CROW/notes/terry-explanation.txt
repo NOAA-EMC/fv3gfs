@@ -1,0 +1,71 @@
+program1 40 ranks
+program1 20 ranks   program1 60 ranks
+program2 30 ranks   program2 30 ranks
+
+node = 24 ranks
+
+
+
+
+
+8 * atmos.exe
+8 * ocean.exe
+8 * wave.exe
+
+t1204 [ 8*atmos + 8*ocean + 8*wave ]
+
+8 * atmos.exe (1)
+8 * ocean.exe (1)
+8 * wave.exe (1)
+
+ => same_except_exe =>
+
+24 * (unknown)
+
+#PBS -l nodes=1:ppn=24
+
+
+8 * atmos.exe (1)
+8 * ocean.exe (1)
+8 * wave.exe (1)
+
+ => can_merge_ranks => 
+
+8 * atmos.exe (1)
+8 * ocean.exe (1)
+8 * wave.exe (1)
+
+mpiexec -np 8 atmos.exe : -np 8 ocean.exe : -np 8 wave.exe
+
+
+
+s134 [ 8*atmos + 16*nothing ]
+s135 [ 8*ocean + 16*nothing ]
+s136 [ 8*wave + 16*nothing ]
+
+
+
+
+2 * atmos.exe (4)
+4 * atmos.exe (2)
+8 * atmos.exe (1)
+
+ => same_except_exe =>
+
+2 * (unknown) (4)
+4 * (unknown) (2)
+8 * (unknown) (1)
+
+#PBS -l nodes=1:ppn=8+1:pnp=8+1:ppn=8
+
+ => can_merge_ranks =>
+
+2 * atmos.exe (4)
+4 * atmos.exe (2)
+8 * atmos.exe (1)
+
+mpirun -np 2 /usr/bin/env OMP_NUM_THREADS=4 atmos.exe : \
+       -np 4 /usr/bin/env OMP_NUM_THREADS=2 atmos.exe : \
+       -np 8 /usr/bin/env OMP_NUM_THREADS=1 atmos.exe
+
+

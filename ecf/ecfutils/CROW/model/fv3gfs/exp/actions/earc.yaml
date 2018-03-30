@@ -1,0 +1,26 @@
+
+earc: &earc_action !Action
+  <<: *action_base
+  J_JOB: earc
+  walltime: !timedelta 00:15:00
+  resources: !calc run_earc.resources
+  accounting: !calc doc.platform.transfer_accounting
+  memory: !calc run_earc.memory
+  Inherit: !Inherit
+    - [ doc.gfs_output_settings, "^FH.*|OUTPUT_GRID" ]
+    - [ doc.fv3_enkf_settings, ".*" ]
+    - [ doc.data_assimilation, ".*" ]
+    - [ doc.fv3_settings, "LEVS|QUILTING|WRITE_NEMSIOFILE|nst_anl" ]
+    - [ doc.case, "EDATE|SDATE|gfs_cyc" ]
+
+  shell_vars: [ "[A-Z][A-Z0-9_]*$", "assim_freq", "l.*4d.*" ]
+
+  CDUMP: gdas
+  CASE: !calc CASE_ENKF
+  CASE_ENKF: !calc doc.fv3_enkf_settings.CASE
+  GROUP_NUMBER: null  # replaced in workflow
+  ENSGRP: !expand "{GROUP_NUMBER:02d}"
+
+  KEEPDATA: NO
+  NMEM_EARCGRP: !calc doc.data_assimilation.NMEM_ENKF_GRP_EOMN
+  VERBOSE: YES

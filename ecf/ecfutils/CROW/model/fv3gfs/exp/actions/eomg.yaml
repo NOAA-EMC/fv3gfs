@@ -1,0 +1,35 @@
+eomg: &eomg_action !Action
+  <<: *action_base
+  J_JOB: eomg
+  ANALYSISSH: !expand "{doc.places.BASE_GSI}/scripts/exglobal_analysis_fv3gfs.sh.ecf"
+  APRUN_GSI: !calc tools.command_without_exe(par,run_eomg.resources,'placeholder')
+  walltime: !timedelta 00:35:00
+  resources: !calc run_eomg.resources
+  memory: !calc run_eomg.memory
+  shell_vars: [ "[A-Z][A-Z0-9_]*$", "assim_freq", "sys_tp", "l.*4d.*" ]
+
+  Inherit: !Inherit
+    - [ doc.gfs_output_settings, "^FH.*|OUTPUT_GRID" ]
+    - [ doc.fv3_enkf_settings, "FHCYC" ]
+    - [ doc.data_assimilation, ".*" ]
+    - [ doc.platform.mpi_tuning, ".*" ]
+    - [ doc.fv3_settings, "LEVS|QUILTING|WRITE_NEMSIOFILE|nst_anl" ]
+    - [ doc.case, "EDATE|SDATE|gfs_cyc" ]
+  CDUMP: gdas
+  CASE: !calc doc.fv3_enkf_settings.CASE
+  NMEM_EOMGGRP: !calc doc.data_assimilation.NMEM_ENKF_GRP_EOMN
+  NTHREADS_GSI: !calc nodes.omp_threads_for(run_gsi.resources[0])
+  NTHSTACK: 1024000000
+  GROUP_NUMBER: null  # replaced in workflow
+  ENSGRP: !expand "{GROUP_NUMBER:02d}"
+  VERBOSE: YES
+  WRITE_NEMSIOFILE: YES
+  APRUN_CALCINC: " "
+
+  APRUN_CYCLE: !FirstTrue
+    - when: !calc doc.platform.name=="THEIA"
+      do: time
+    - when: !calc doc.platform.name=="WCOSS_C"
+      do: !expand "aprun -j 1 -n $ncmd -N 1 -d {NTHREADS_CYCLE} -cc depth"
+    - otherwise: !error "No APRUN_CALCINC for unknown platform {doc.platform.name}"
+  NTHREADS_CYCLE: 12

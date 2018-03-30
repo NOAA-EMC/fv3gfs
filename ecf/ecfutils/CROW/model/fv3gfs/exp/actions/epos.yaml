@@ -1,0 +1,23 @@
+epos: &epos_action !Action
+  <<: *action_base
+  J_JOB: epos
+  resources: !calc run_epos.resources
+  memory: !calc run_epos.memory
+  walltime: !timedelta 00:15:00
+  APRUN_EPOS: !calc tools.command_without_exe(par,resources,'placeholder')
+  NTHREADS_EPOS: !calc nodes.omp_threads_for(resources[0])
+
+  CASE: !calc doc.fv3_enkf_settings.CASE
+  ENKFPOSTSH: !expand "{doc.places.BASE_GSI}/scripts/EnKF/scripts_ncep/exglobal_enkf_post_fv3gfs.sh.ecf"
+  shell_vars: [ "[A-Z][A-Z0-9_]*$", "assim_freq", "l.*4d.*" ]
+
+  Inherit: !Inherit
+    - [ doc.gfs_output_settings, "^FH.*|OUTPUT_GRID" ]
+    - [ doc.platform.mpi_tuning, '.*' ]
+    - [ doc.data_assimilation, ".*" ]
+    - [ doc.fv3_enkf_settings, "FHCYC|QUILTING|WRITE_NEMSIOFILE|nst_anl|CDUMP|LEVS" ]
+    - [ doc.case, "EDATE|SDATE|gfs_cyc" ]
+  CDUMP: gdas
+  VERBOSE: YES
+  WRITE_NEMSIOFILE: YES
+  accounting: !calc doc.platform.parallel_accounting

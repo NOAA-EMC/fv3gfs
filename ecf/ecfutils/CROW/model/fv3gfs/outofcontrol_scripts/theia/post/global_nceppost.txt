@@ -1,0 +1,2 @@
+STGPSH=/scratch4/NCEPDEV/global/save/glopara/svn/post/tags/ncep_post.v7.7.2/ush/global_nceppost.sh
+ 

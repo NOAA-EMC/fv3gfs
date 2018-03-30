@@ -1,0 +1,43 @@
+ecen: &ecen_action !Action
+  <<: *action_base
+
+  Template: *chgres_template
+
+  # ----------------------------------------
+  # From config.resources
+  J_JOB: ecen
+  walltime: !timedelta 00:30:00
+  resources: !calc run_ecen.resources
+  resource_env: !calc run_ecen.env
+  memory: !calc run_ecen.memory
+
+  shell_vars: [ "[A-Z][A-Z0-9_]*$", "assim_freq", "l.*4d.*" ]
+
+  # Each command (APRUN_whatever) in config.resources needs a
+  # run_whatever entry in the corresponding action.
+  # Executable name is specified deep inside scripts
+  # Use "placeholder" for exe name
+  # ----------------------------------------
+  # From config.ecen
+  ENKFRECENSH: !expand "{doc.places.BASE_GSI}/scripts/EnKF/scripts_ncep/exglobal_enkf_recenter_fv3gfs.sh.ecf"
+  CHGRESSH: !calc doc.places.CHGRESSH_ECEN
+  APRUN_CHGRES: !FirstTrue
+    - when: !calc doc.platform.name == "THEIA"
+      do: "time"
+    - otherwise: !calc |
+        tools.command_without_exe(
+          par,chgres_resources,"placeholder")
+  APRUN_ECEN:  !calc tools.command_without_exe(par,resources,"placeholder")
+  NTHREADS_ECEN: !calc nodes.omp_threads_for(resources[0])
+  APRUN_CHGRES: "time"
+  CDUMP: gdas
+  Inherit: !Inherit
+    - [ doc.gfs_output_settings, "^FH.*|OUTPUT_GRID" ]
+    - [ doc.fv3_enkf_settings, "FHCYC" ]
+    - [ doc.data_assimilation, ".*" ]
+    - [ doc.fv3_settings, "LEVS|QUILTING|WRITE_NEMSIOFILE|nst_anl" ]
+    - [ doc.platform.mpi_tuning, ".*" ]
+    - [ doc.case, "EDATE|SDATE|gfs_cyc" ]
+
+  CASE_ENKF: !calc doc.fv3_enkf_settings.CASE
+  VERBOSE: YES

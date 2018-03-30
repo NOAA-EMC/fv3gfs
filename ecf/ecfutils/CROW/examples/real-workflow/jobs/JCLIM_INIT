@@ -1,0 +1,20 @@
+#! /bin/sh
+
+set -xue
+export DATAtest="${DATAtest:-${SCRUB_DIR}}"
+export COMOUTtest="${COMOUTtest:-${COM_DIR}}"
+export COMINtest="${COMINtest:-${COM_DIR}}"
+export COMOLDtest="${COMOLDtest:-${OLD_COM_DIR}}"
+export HOMEtest="${HOMEtest}"
+export EXtest="${EXtest:-$HOMEtest/scripts}"
+export USHtest="${USHtest:-$HOMEtest/ush}"
+
+export PYTHONPATH="${HOMEtest}${PYTHONPATH:+:$PYTHONPATH}"
+
+export DATA="$DATAtest"/$( basename "$TASK_PATH" )."$RANDOM.$$"
+rm -rf "$DATA"
+mkdir -p "$DATA"
+cd "$DATA"
+
+python3.6 "$EXtest/exclim_init.py"
+

@@ -1,0 +1,326 @@
+Basic aspects of front-end:
+
+  # Read YAML files:
+  config=crow.config.from_files('file1.yaml','file2.yaml',...)
+
+  # Convert back to YAML
+  text=crow.config.to_yaml(config)
+
+  # Read YAML from a string:
+  config2=crow.config.from_string(text)
+
+  # Should match
+  assert(config=config2)
+
+Calculations:
+
+  !calc a+b+c
+  Perform a calculation in local scope
+    eval('a+b+c',...)
+
+  !expand {tools.realpath(dir1)}/file
+  Literal string extrapolation in local scope
+
+    eval(   f'{tools.realpath(dir1)}/file'  ,...)
+
+
+  Perl: "${VARNAME}${VARNAME2}"
+  Shell: "${VARNAME}${VARNAME2}"
+  Shell: "$( echo $VARNAME$VARNAME2 )"
+  Python 3.6: f'{VARNAME + VARNAME2}'
+  Ruby: "#{VARNAME + VARNAME2}"
+
+  Python 3.6 and Ruby can embed arbitrary code
+
+  The !expand is a simple wrapper around this.
+
+Globals within !calc and !expand:
+
+  doc = top-level object read from YAML
+  tools = crow.config.tools.CONFIG_TOOLS.  A set of utilities for simple calculations.
+
+Conditionals:
+
+  Choose the first item that is the maximum
+  scrub: !FirstMax
+    - when: !calc tools.panasas_gb(do)
+      do: /scratch3/NCEPDEV/stmp1
+    - when: !calc tools.panasas_gb(do)
+      do: /scratch3/NCEPDEV/stmp2
+    - do: /scratch4/NCEPDEV/stmp3
+      when: !calc tools.panasas_gb(do)
+    - do: /scratch4/NCEPDEV/stmp4
+      when: !calc tools.panasas_gb(do)
+
+  Also existing:
+  !FirstMax
+  !FirstMin
+  !LastTrue
+  !FirstTrue - suitable for if/elif/else
+
+!Platform: represents a computing environment
+
+  theia: &theia !Platform
+    ...
+    detect: !calc tools.isdir('/scratch4') and tools.isdir('/scratch3')
+  
+  wcoss_cray: &wcoss_cray !Platform
+    ...
+    detect: !calc tools.isdir('/gpfs/hps') and tools.isfile('/etc/SuSE-release')
+  
+  platform: !FirstTrue
+    - do: *wcoss_cray
+      when: !calc do.detect
+    - do: *theia
+      when: !calc do.detect
+
+!Action: represents an action to perform, such as the post.sh
+
+  fcst: &fcst !Action
+    Template: *fcst_vars
+    do_vort_damp: true
+    consv_te: 0.
+  int_array: [ 1, 2, 3, 4, 5 ]
+  string_array: [ a, b, c, d, e ]
+  mp_phys: !calc 5+5
+
+!Template: validation logic for dictionary (mapping) types
+  Checks if variables match requirements.  Substitutes defaults if missing.
+  crow/config/template.py
+
+  fcst_vars: &fcst_vars !Template
+    int_array:
+      type: int list
+    string_array:
+      type: string list
+    bool_array:
+      type: bool list
+      default: [ true, false, true ]
+    mp_phys:
+      # validation information for mp_phys variable
+      type: int
+      allowed: [ 10, 20, 30 ]
+      description: "MIcrophysics scheme selection"
+      if_present: !FirstTrue
+        - when: !calc mp_phys==10
+          do:
+            b:
+              type: int
+              description: 'Sample integer b'
+            dog:
+              type: string
+              default: 'brown'
+
+Special if_present: is executed if the variable is present.  If a==10,
+then the more_vars are added to the validation.
+
+------------------------------------------------------------------------
+
+!Task, !Family, !Cycle - for defining workflows
+
+Terminology and functionality is based on ecFlow
+
+A !Task is a batch job.
+A !Family is a group of families and tasks
+A !Cycle is the top level.  It must contain a !Clock, and at least one !Task or !Family
+
+sim_length: !timedelta 12d18:00:00
+
+my_fancy_workflow: !Cycle
+  Clock:
+    start: 2017-02-14t18:00:00
+    end: !calc start+doc.sim_length
+    step: !timedelta 06:00
+  
+  gdas: !Family
+    Trigger: !depend gdas.at('-6:00')
+    prep: !Task
+      Perform: *gfsprep
+    fcst: !Task
+      Perform: null
+      Trigger: !Depend anal
+      Time: !timedelta 3:15
+      Complete: !Depend   suite.has_cycle('-6:00') | ~ prep.at('-6:00')
+    other_fcst: !Task
+      Perform: 5
+      Trigger: !Depend anal
+      Time: !timedelta 3:15
+      Complete: !Depend   suite.has_cycle('-6:00') | ~ prep.at('-6:00')
+   
+!Clock - defines cycles to run.  Every task and family in the !Cycle
+exists at every time defined by the !Clock.  Has a start datetime, an 
+end datetime, and a step timedelta.
+
+    start: 2017-02-14t18:00:00
+    end: !calc start+doc.sim_length
+    step: !timedelta 06:00
+
+Contents of a !Task or !Family:
+
+  Perform - can be any object.  Meaning is user-defined.
+  Trigger: !Depend  -  do not start task or family until this dependency is met
+  Complete: !Depend - task or family is considered complete (never run)
+                       if this condition is met
+  Time: !timedelta - task or family is not met until this time, relative to the
+                     clock time for this cycle
+
+Dependencies for a !Task include dependencies for all ancestor families.
+
+------------------------------------------------------------------------
+
+Rocoto workflows
+
+Bare minimum required.  Will generate an empty workflow:
+
+Rocotp XML comes from suite.Rocoto.workflow_xml which can be any
+string, or any expression that generates a string.  This is the
+simplest possible workflow.  It will generate an empty workflow (no
+<task> tags)
+
+my_fancy_workflow: !Cycle
+   Rocoto:
+     scheduler:
+       name: MoabTorque
+       physical_cores_per_node: 24
+       logical_cpus_per_core: 2
+       hyperthreading_allowed: true
+       indent_text: "  "
+     workflow_install: /tmp
+     workflow_xml: !expand |
+        <?xml version="1.0"?>
+        <!DOCTYPE workflow [
+          <!ENTITY WORKFLOW_INSTALL "{workflow_install}">
+        ]>
+
+        <workflow realtime="F"
+           scheduler="{sched.rocoto_name}">
+            <log verbosity=10><cyclestr>&WORKFLOW_INSTALL;/logs/@Y@m@d@H.log</cyclestr></log>
+        </workflow>
+
+   Clock:
+     start: 2017-02-14t18:00:00
+     end: 2017-02-19t12:00:00
+     step: !timedelta 06:00
+
+To generate a useful workflow (one with tasks), you need to include
+logic for that in your workflow_xml:
+
+     indent_text: "  "
+     workflow_xml: !expand |
+        <?xml version="1.0"?>
+        <!DOCTYPE workflow [
+          <!ENTITY WORKFLOW_INSTALL "{workflow_install}">
+        ]>
+
+        <workflow realtime="F"
+           scheduler="{sched.rocoto_name}">
+            <log verbosity=10><cyclestr>&WORKFLOW_INSTALL;/logs/@Y@m@d@H.log</cyclestr></log>
+
+        {to_rocoto.make_time_xml(indent=2)}
+        {to_rocoto.make_task_xml(indent=2)}
+        </workflow>
+
+The to_rocoto is a global variable that exists only within a suite
+definition that is being converted to Rocoto.  It corresponds to an
+instance of this class:
+
+    crow.metascheduler.rocoto.ToRocoto
+
+These two functions know how to walk the YAML object tree to generate
+the cycledefs and tasks:
+
+        {to_rocoto.make_time_xml(indent=2)}
+        {to_rocoto.make_task_xml(indent=2)}
+
+The indent=2 just tells the indentation level (spaces) of each line.
+The indentation is indent*indent_text
+
+The make_time_xml uses the !Clock declaration
+
+The make_task_xml uses the Rocoto: blocks inside each task
+
+my_fancy_workflow: !Cycle
+   Rocoto:
+     scheduler:
+       name: MoabTorque
+       physical_cores_per_node: 24
+       logical_cpus_per_core: 2
+       hyperthreading_allowed: true
+     ...
+   gdas: !Family
+     prep: !Task
+       Complete: !Depend ~ suite.has_cycle('-6:00')
+       Perform: *gfsprep
+       Rocoto: !expand |
+         <command>/bin/true</command>
+         {sched.rocoto_accounting(suite.Rocoto.accounting)}
+         {sched.rocoto_resources(Perform.resources)}
+    
+The contents of the <task> becomes:
+
+    <task ... >
+        ... contents generated by Task's Rocoto variable ...
+        <dependency>
+        ... contents generated from Trigger, Complete, Time
+            dependencies within !Families and !Tasks ...
+        </dependency>
+    </task>
+
+Families are generated via <metatask>s because that is the only
+straightforward way in Rocoto.  Each !Family corresponds to one
+<metatask>
+
+------------------------------------------------------------------------
+
+Notice this bit.  It generates the <queue>, <nodes>, etc. for each task.
+
+         {sched.rocoto_accounting(suite.Rocoto.accounting)}
+         {sched.rocoto_resources(Perform.resources)}
+
+The sched is a special global variable referring to the scheduler.  For example, 
+
+   crow.sysenv.schedulers.MoabTorque.Scheduler
+
+This is specified in the suite definition here:
+
+my_fancy_workflow: !Cycle
+   Rocoto:
+     scheduler:
+       name: MoabTorque
+       physical_cores_per_node: 24
+       logical_cpus_per_core: 2
+       hyperthreading_allowed: true
+       indent_text: "  "
+
+Notice "Perform.resources" is passed to rocoto_resources.  That is a
+JobResourceSpec from here:
+
+fcst: &fcst !Action
+  resources: # Definition of a serial, openmp, or MPI program
+    # Each list item is a block of identical MPI ranks.
+    # FOr a serial or pure openmp program, use one list item
+    - mpi_ranks: 12       # number of MPI ranks in this block
+      OMP_NUM_THREADS: 1  # number of threads per rank
+      exe: atmos          # executable to run
+      HydraIMPI_extra: '-envall'  # special value specific to IMPI in Hydra
+    - mpi_ranks: 48    # number of ranks for this second block
+      exe: ocean       # executable for second block
+
+Note that the system is designed for MPMD by default.  SPMD is a
+special case: provide the same exe for every block of ranks.
+
+The contents of "resources:" is turned into a
+crow.sysenv.jobs.JobResourceSpec, sent into
+crow.sysenv.schedulers.MoabTorque.Scheduler.rocoto_resources, and
+dumped into the XML for that task.
+
+------------------------------------------------------------------------
+
+Suggested way to handle top-level options for users who don't want to
+look at the contents.
+
+options:
+  Template: *options_verification
+  fcst_length: !timedelta 12d18:00:00
+  ensemble_members: 80
+  project: fv3-cpu

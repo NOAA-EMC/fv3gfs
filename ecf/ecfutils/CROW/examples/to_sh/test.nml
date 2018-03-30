@@ -1,0 +1,5 @@
+&namelist
+  abc_list = {tools.fort(abc)}
+  DOG = {tools.fort(vars.DOG)}
+  true_test = {tools.fort(logical.TRUE_TEST)}
+/

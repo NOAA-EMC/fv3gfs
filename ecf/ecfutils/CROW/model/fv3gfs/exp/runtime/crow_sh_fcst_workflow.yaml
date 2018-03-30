@@ -1,0 +1,46 @@
+crow_sh_fcst_workflow: !Cycle
+  Rocoto: *Rocoto
+
+  Clock: *clock
+
+  ics: !Family
+    getics: !Task
+      Perform:
+        <<: *getics_action
+        CDUMP: gfs
+      Rocoto: *task_template
+
+    fv3ics: !Task
+      Perform: 
+        <<: *fv3ics_action
+        CDUMP: gfs
+      Rocoto: *task_template
+      Trigger: !Depend getics
+
+  gfs: !Family
+    Trigger: !Depend ics
+
+    fcst: !Task
+      Perform: *crow_sh_fcst_gfs_action
+      Rocoto: *task_template
+
+    post: !Task
+      Perform: *post_gfs_action
+      Rocoto: *task_template
+      Trigger: !Depend fcst
+    
+    vrfy: !Task
+      Perform: *vrfy_gfs_action
+      Rocoto: *task_template
+      Trigger: !Depend post
+
+  arch: !Task
+    Perform:
+      <<: *arch_gfs_action
+      CDUMP: gfs
+    Rocoto: *task_template
+    Trigger: !Depend gfs
+
+  final: !Task
+    Perform: *final_action
+    Rocoto: *task_template

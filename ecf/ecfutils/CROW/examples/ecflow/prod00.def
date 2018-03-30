@@ -1,0 +1,42 @@
+suite prod00
+  repeat day 1
+  edit ECF_TRIES '1'
+  edit ECF_SOME_OTHER_VAR 'abcd'
+  edit QUEUE 'debug'
+  task task0
+  endtask
+  family family1
+    trigger ./family2/task21 == complete and ./task0 == complete
+    task task11
+       event 1 some_event
+       event 1 another_event
+    endtask
+    task task12
+      trigger ./task11:some_event
+    endtask
+  endfamily
+  family family2
+    trigger ./family1/task11:another_event
+    task task21
+      trigger ../family1/task12 == complete
+    endtask
+    family family3
+      task task31
+        trigger ../task21 == complete
+      endtask
+      task task32
+        trigger ./task31 == complete
+      endtask
+      task task33
+        trigger ./task31 == complete
+      endtask
+    endfamily
+    task task22
+      trigger ./task21 == complete
+    endtask
+    task task23
+      trigger ./task21 == complete
+      complete ./task22 == complete
+    endtask
+  endfamily
+endsuite

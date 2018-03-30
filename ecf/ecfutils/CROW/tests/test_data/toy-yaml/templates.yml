@@ -1,0 +1,42 @@
+
+more_vars: &more_vars !Template
+  b:
+    type: int
+    description: 'Sample integer b'
+  dog:
+    type: string
+    default: 'brown'
+
+fcst_vars: &fcst_vars !Template
+  int_array:
+    type: int list
+  string_array:
+    type: string list
+  bool_array:
+    type: bool list
+    default: [ true, false, true ]
+  do_vort_damp:
+    type: bool
+  master_grid:
+    type: string
+  a:
+    type: int
+    allowed: [ 10, 20, 30 ]
+    description: "Sample integer a"
+# if_present is not useful.  We need to condition on the value.
+    if_present: !FirstTrue
+      - do: *more_vars
+        when: !calc a==10
+      - otherwise: null
+  cow:
+    type: string
+    allowed: [ brown, black, white, red, blue ]
+    description: "Color of a cow"
+    default: blue
+  lencow:
+    type: int
+    description: "Length of the cow"
+    default: !calc len(cow)
+  some_array:
+    type: int list
+    optional: true

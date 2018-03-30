@@ -1,0 +1,183 @@
+sample_mpi_omp: &sample_mpi_omp !JobRequest
+  - exe: placeholder
+    mpi_ranks: 24
+    OMP_NUM_THREADS: 2
+    walltime: 00:05:00
+
+sample_mpi_mpmd: &sample_mpi_mpmd !JobRequest
+  - exe: placeholder1
+    mpi_ranks: 12
+    OMP_NUM_THREADS: 2
+    walltime: 00:05:00
+  - exe: placeholder2
+    mpi_ranks: 48
+    OMP_NUM_THREADS: 1
+
+sample_openmp: &sample_openmp !JobRequest
+  - exe: placeholder
+    OMP_NUM_THREADS: 16
+    walltime: 00:05:00
+
+sample_mpi: &sample_mpi !JobRequest
+  - exe: placeholder
+    mpi_ranks: 48
+    walltime: 00:05:00
+
+sample_serial: &sample_serial !JobRequest
+  - exe: placeholder
+    walltime: 00:05:00
+
+sample_shared_serial: &sample_shared_serial !JobRequest
+  - exe: placeholder
+    walltime: 00:05:00
+    exclusive: false
+
+scheduler_settings:
+  name: LSFAlps
+  physical_cores_per_node: 24
+  logical_cpus_per_core: 2
+  hyperthreading_allowed: true
+  
+scheduler: !calc |
+  tools.get_scheduler(doc.scheduler_settings.name,
+                      doc.scheduler_settings)
+
+accounting:
+  queue: '%QUEUE%'
+  project: GFS-T2O
+
+ecf_file_template: &ecf_file_template !expand |
+  #! /bin/sh
+  {sched.batch_accounting(doc.accounting,jobname=jobname,outerr=logfile)
+  }{sched.batch_resources(resources)}
+  %include <head.h>
+  echo ${{JOBgfs}}/{J_JOB}
+  %include <tail.h>
+
+suite: !Cycle
+  Clock: !Clock
+    start: 2018-01-01T00:00:00
+    end: 2018-01-01T18:00:00
+    step: !timedelta "6:00:00"
+
+  Alarms:
+    twelve_hourly: !Clock
+      start: 2018-01-01T00:00:00
+      end: 2018-01-01T12:00:00
+      step: !timedelta "12:00:00"
+    zero_utc: !Clock
+      start: 2018-01-01T00:00:00
+      end: 2018-01-01T00:00:00
+      step: !timedelta "24:00:00"
+
+  ecFlow:
+    suite_def_filename: "prod%H.def"
+    suite_name: "prod%H"
+    scheduler: !calc doc.scheduler
+
+  ecflow_def: !expand |
+    repeat day 1
+    edit ECF_TRIES '1'
+    edit ECF_SOME_OTHER_VAR 'abcd'
+    edit QUEUE 'debug'
+
+  task0: !Task
+    # Time: !timedelta +2:00:00
+    resources: *sample_shared_serial
+    J_JOB: JGFS_TASK0
+    ecf_file: *ecf_file_template
+    jobname: !calc task_path_var
+    logfile: !expand '/ptmp/%U/{jobname}'
+
+  family1: !Family
+    ecflow_def: |
+      edit SOMEVAR '1'
+      edit ANOTHERVAR '2'
+    Trigger: !Depend "up.family2.at('-6:00:00').task21 & task0"
+    # Time: !timedelta +3:00:00
+
+    task11: !Task
+      ecflow_def: |
+        edit WHATEVER '333'
+        event manually_written_event
+      ecf_file: !expand |
+        #! /bin/sh
+        {sched.batch_accounting(doc.accounting,jobname=jobname)}{sched.batch_resources(resources)}
+        %include <head.h>
+        echo ${{JOBgfs}}/{J_JOB}
+        ecflow_client --event=some_event
+        ecflow_client --event=another_event
+        %include <tail.h>
+      J_JOB: JGFS_TASK11
+      resources: *sample_serial
+      jobname: !calc task_path_var
+      logfile: !expand '/ptmp/%U/{jobname}'
+
+      # NOTE: in the below !DataEvent maps, the file= is required, but
+      # is just a placeholder for Rocoto support.  It is not used at
+      # all for ecflow support.
+
+      some_event: !DataEvent {file="/dev/null"}
+      another_event: !ShellEvent {command="/bin/true"}
+
+    task12: !Task
+      ecf_file: *ecf_file_template
+      resources: *sample_mpi
+      J_JOB: JGFS_TASK12
+      Trigger: !Depend task11.some_event
+      jobname: !calc task_path_var
+      logfile: !expand '/ptmp/%U/{jobname}'
+
+  family2: !Family
+    # Time: !timedelta +4:20:00
+    Trigger: !Depend family1.task11.another_event
+
+    task21: !Task
+      ecf_file: *ecf_file_template
+      Trigger: !Depend up.family1.task12
+      resources: *sample_mpi_mpmd
+      J_JOB: JGFS_TASK21
+      jobname: !calc task_path_var
+      logfile: !expand '/ptmp/%U/{jobname}'
+
+    family3: !Family 
+      task31: !Task
+        AlarmName: twelve_hourly
+        ecf_file: *ecf_file_template
+        resources: *sample_openmp
+        Trigger: !Depend up.task21
+        J_JOB: JGFS_TASK3
+        jobname: !calc task_path_var
+        logfile: !expand '/ptmp/%U/{jobname}'
+      task32: !Task
+        ecf_file: *ecf_file_template
+        resources: *sample_openmp
+        Trigger: !Depend task31 | ~ task31.exists()
+        J_JOB: JGFS_TASK3
+        jobname: !calc task_path_var
+        logfile: !expand '/ptmp/%U/{jobname}'
+      task33: !Task
+        ecf_file: *ecf_file_template
+        resources: *sample_openmp
+        Trigger: !Depend task31
+        J_JOB: JGFS_TASK3
+        jobname: !calc task_path_var
+        logfile: !expand '/ptmp/%U/{jobname}'
+    task22: !Task
+      AlarmName: zero_utc
+      # Time: !timedelta +5:00:00
+      Trigger: !Depend task21
+      resources: *sample_mpi_omp
+      ecf_file: *ecf_file_template
+      J_JOB: JGFS_TASK22
+      jobname: !calc task_path_var
+      logfile: !expand '/ptmp/%U/{jobname}'
+    task23: !Task
+      # Time: !timedelta +6:30:00
+      Complete: !Depend task22
+      resources: *sample_serial
+      Trigger: !Depend task21
+      ecf_file: *ecf_file_template
+      J_JOB: JGFS_TASK23
+      jobname: !calc task_path_var
+      logfile: !expand '/ptmp/%U/{jobname}'

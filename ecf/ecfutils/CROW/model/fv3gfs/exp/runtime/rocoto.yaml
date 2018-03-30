@@ -1,0 +1,117 @@
+Rocoto: &Rocoto
+  scheduler: !calc doc.platform.scheduler
+  parallelism: !calc doc.platform.parallelism
+#  EXPDIR: !calc doc.places.EXPDIR
+  max_tries: 1
+
+  workflow_xml: !expand |
+    <?xml version="1.0"?>
+    <!DOCTYPE workflow [
+      <!ENTITY LOG_DIR "{doc.places.EXPDIR}/log">
+      <!ENTITY COM_DIR "{doc.places.EXPDIR}/com">
+      <!ENTITY SCRUB_DIR "{doc.places.EXPDIR}/scrub">
+      <!ENTITY TASK_THROTTLE "5">
+      <!ENTITY ENSEMBLE_TASK_THROTTLE "20">
+      <!ENTITY CYCLE_THROTTLE "2">
+      <!ENTITY MAX_TRIES "1">
+    ]>
+    <workflow realtime="F"
+              cyclethrottle="&CYCLE_THROTTLE;"
+              scheduler="{sched.rocoto_name.lower()}"
+              taskthrottle="&TASK_THROTTLE;" >
+      <log><cyclestr>&LOG_DIR;/rocoto_@Y@m@d@H.log</cyclestr></log>
+    {to_rocoto.make_time_xml(indent=1)}
+    {to_rocoto.make_task_xml(indent=1)}
+    </workflow>
+
+  task_template: &task_template !expand |
+    <command>{doc.places.BASE_JOB}/job_wrapper.sh {Perform.J_JOB}</command>
+    <jobname>{doc.case.experiment_name}{task_path_str}@<cyclestr>@Y@m@d@H</cyclestr></jobname>
+    <join>&LOG_DIR;/<cyclestr>@Y@m@d@H</cyclestr>/{task_path_var}.log</join>
+    <walltime>{Perform.walltime}</walltime>
+    <memory>{Perform.memory}</memory>
+    {sched.rocoto_accounting(Perform.accounting)}
+    {sched.rocoto_resources(Perform.resources)}
+    <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+
+    <envar>
+      <name>COMOUTgfs</name>
+      <value><cyclestr>&COM_DIR;/@Y@m@d@H</cyclestr></value>
+    </envar>
+    <envar>
+      <name>OLD_COM_DIR</name>
+      <value><cyclestr offset="-6:00:00">&COM_DIR;/@Y@m@d@H</cyclestr></value>
+    </envar>
+    <envar>
+      <name>SCRUB_DIR</name>
+      <value><cyclestr>&SCRUB_DIR;/@Y@m@d@H</cyclestr></value>
+    </envar>
+    <envar>
+      <name>TASK_PATH</name>
+      <value>{task_path_var}.Perform</value>
+    </envar>
+    <envar>
+      <name>MACHINE</name>
+      <value>{doc.platform.name}</value>
+    </envar>
+    <envar>
+      <name>machine</name>
+      <value>{doc.platform.name}</value>
+    </envar>
+    <envar>
+      <name>BASE_MODULES</name>
+      <value>{doc.places.BASE_MODULES}</value>
+    </envar>
+    <envar>
+      <name>CONFIG_YAML</name>
+      <value>{doc.places.EXPDIR}/config.yaml</value>
+    </envar>
+    <envar>
+      <name>CROW_DATAFLOW_DB</name>
+      <value>{doc.places.EXPDIR}/dataflow.db</value>
+    </envar>
+    <envar>
+      <name>HOMEcrow</name>
+      <value>{doc.places.HOMEcrow}</value>
+    </envar>
+    <envar>
+      <name>BASE_JOB</name>
+      <value>{doc.places.BASE_JOB}</value>
+    </envar>
+    <envar>
+      <name>HOMEgfs</name>
+      <value>{doc.places.HOMEgfs}</value>
+    </envar>
+    <envar>
+      <name>ACTUALLY_RUN</name>
+      <value>{"YES" if doc.case.ACTUALLY_RUN else "NO"}</value>
+    </envar>
+
+  efcs_task_template: &efcs_task_template !expand |
+    <envar>
+      <name>NMEM_ENKF</name>
+      <value>{Perform.NMEM_ENKF}</value>
+    </envar>
+    <envar>
+      <name>NMEM_ENKF_GRP_EFMN</name>
+      <value>{Perform.NMEM_ENKF_GRP_EFMN}</value>
+    </envar>
+    <envar>
+      <name>GROUP_NUMBER</name>
+      <value>GROUP_NUMBER</value>
+    </envar>
+
+  eomn_task_template: &eomn_task_template !expand |
+    <envar>
+      <name>NMEM_ENKF</name>
+      <value>{Perform.NMEM_ENKF}</value>
+    </envar>
+    <envar>
+      <name>NMEM_ENKF_GRP_EOMN</name>
+      <value>{Perform.NMEM_ENKF_GRP_EOMN}</value>
+    </envar>
+    <envar>
+      <name>GROUP_NUMBER</name>
+      <value>GROUP_NUMBER</value>
+    </envar>
+

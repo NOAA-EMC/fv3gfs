@@ -1,0 +1,177 @@
+Rocoto: &Rocoto
+  scheduler: !calc doc.platform.scheduler
+  parallelism: !calc doc.platform.parallelism
+  run_dir: !calc doc.options.run_dir
+  max_tries: 3
+
+  workflow_xml: !expand |
+    <?xml version="1.0"?>
+    <!DOCTYPE workflow [
+      <!ENTITY LOG_DIR "{run_dir}/log">
+      <!ENTITY COM_DIR "{run_dir}/com">
+      <!ENTITY SCRUB_DIR "{run_dir}/scrub">
+      <!ENTITY TASK_THROTTLE "30">
+      <!ENTITY ENSEMBLE_TASK_THROTTLE "20">
+      <!ENTITY CYCLE_THROTTLE "2">
+      <!ENTITY MAX_TRIES "2">
+    ]>
+    <workflow realtime="F"
+              cyclethrottle="&CYCLE_THROTTLE;"
+              scheduler="{sched.rocoto_name.lower()}"
+              taskthrottle="&TASK_THROTTLE;" >
+      <log><cyclestr>&LOG_DIR;/rocoto_@Y@m@d@H.log</cyclestr></log>
+    {to_rocoto.make_time_xml(indent=1)}
+    {to_rocoto.make_task_xml(indent=1)}
+    </workflow>
+
+  task_template: &task_template !expand |
+    <command>$HOMEtest/workflow/job_wrapper.sh {Perform.J_JOB}</command>
+    <jobname>{task_path_str}@<cyclestr>@Y@m@d@H</cyclestr></jobname>
+    <join>&LOG_DIR;/<cyclestr>@Y@m@d@H</cyclestr>/{task_path_var}.log</join>
+    <walltime>{Perform.walltime}</walltime>
+    <memory>{Perform.rocoto_memory}</memory>
+    {sched.rocoto_accounting(Perform.accounting)}
+    {sched.rocoto_resources(Perform.resources)}
+    <envar>
+      <name>COM_DIR</name>
+      <value><cyclestr>&COM_DIR;/@Y@m@d@H</cyclestr></value>
+    </envar>
+    <envar>
+      <name>LOG_DIR</name>
+      <value><cyclestr>&LOG_DIR;/@Y@m@d@H</cyclestr></value>
+    </envar>
+    <envar>
+      <name>OLD_COM_DIR</name>
+      <value><cyclestr offset="-{doc.options.cycle_len}">&COM_DIR;/@Y@m@d@H</cyclestr></value>
+    </envar>
+    <envar>
+      <name>SCRUB_DIR</name>
+      <value><cyclestr>&SCRUB_DIR;/@Y@m@d@H</cyclestr></value>
+    </envar>
+    <envar>
+      <name>TASK_PATH</name>
+      <value>{task_path_str}</value>
+    </envar>
+    <envar>
+      <name>CONFIG_YAML</name>
+      <value>{doc.options.run_dir}/config.yaml</value>
+    </envar>
+    <envar>
+      <name>HOMEcrow</name>
+      <value>{doc.options.HOMEcrow}</value>
+    </envar>
+    <envar>
+      <name>HOMEtest</name>
+      <value>{doc.options.HOMEtest}</value>
+    </envar>
+    <envar>
+      <name>YMDH</name>
+      <value><cyclestr>@Y@m@d@H</cyclestr></value>
+    </envar>
+
+  ens_task_template: &ens_task_template !expand |
+    <envar>
+      <name>ENS_START_MEMBER</name>
+      <value>{Perform.start_mem}</value>
+    </envar>
+    <envar>
+      <name>ENS_STOP_MEMBER</name>
+      <value>{Perform.stop_mem}</value>
+    </envar>
+
+workflow: !Cycle
+  Rocoto: *Rocoto
+
+  Clock: *clock
+
+  start_cycle: !Task
+    Perform: *start_cycle_action
+    Rocoto: *task_template
+    max_tries: 5
+  
+  clim_init: !Task
+    Perform: *clim_init_action
+    Rocoto: *task_template
+    Complete: !Depend suite.has_cycle('-6:00:00')
+    Trigger: !Depend start_cycle
+  
+  cycled_init: !Family
+    # Skip cycled initialization for first cycle.
+    Complete: !Depend ~ suite.has_cycle('-6:00:00')
+
+    ensemble: !Family
+      Trigger: !Depend ( analysis.at('-6:00:00') | up.clim_init.at('-6:00:00') ) & up.start_cycle
+      ens_fcst_000_020: !Task
+        Perform:
+          <<: *ens_fcst_action
+          start_mem:  0
+          stop_mem:  20
+        task_template: *task_template
+        ens_more: *ens_task_template
+        Rocoto: !expand "{task_template}{ens_more}"
+
+      ens_fcst_021_040: !Task
+        Perform:
+          <<: *ens_fcst_action
+          start_mem: 21
+          stop_mem:  40
+        task_template: *task_template
+        ens_more: *ens_task_template
+        Rocoto: !expand "{task_template}{ens_more}"
+
+      ens_fcst_041_060: !Task
+        Perform:
+          <<: *ens_fcst_action
+          start_mem: 41
+          stop_mem:  60
+        task_template: *task_template
+        ens_more: *ens_task_template
+        Rocoto: !expand "{task_template}{ens_more}"
+
+      ens_fcst_061_080: !Task
+        Perform:
+          <<: *ens_fcst_action
+          start_mem: 61
+          stop_mem:  80
+        task_template: *task_template
+        ens_more: *ens_task_template
+        Rocoto: !expand "{task_template}{ens_more}"
+
+      ens_fcst_081_100: !Task
+        Perform:
+          <<: *ens_fcst_action
+          start_mem: 81
+          stop_mem: 100
+        task_template: *task_template
+        ens_more: *ens_task_template
+        Rocoto: !expand "{task_template}{ens_more}"
+
+    analysis: !Task
+      Trigger: !Depend ensemble
+      Perform: *analysis_action
+      Rocoto: *task_template
+
+  fcst: !Family
+    # Special case for first cycle: forecast off of climatology:
+    max_tries: 2
+    clim_fcst: !Task
+      Perform: *clim_fcst_action
+      Rocoto: *task_template
+      Complete: !Depend suite.has_cycle('-6:00:00')
+      Trigger: !Depend up.clim_init
+
+    # All other cycles use the cycled initialization as input:
+    fcst: !Task
+      Perform: *fcst_action
+      Rocoto: *task_template
+      Complete: !Depend ~ suite.has_cycle('-6:00:00')
+      Trigger: !Depend up.cycled_init
+
+  post: !Task
+    Perform: *post_action
+    Rocoto: *task_template
+    Trigger: !Depend fcst.is_running() | fcst
+
+  final: !Task
+    Perform: *final_action
+    Rocoto: *task_template

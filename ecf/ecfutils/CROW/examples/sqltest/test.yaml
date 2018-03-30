@@ -1,0 +1,22 @@
+com_pre: 'com/{cycle:%Y%m%d%H}/{actor}/{slot}.t{cycle:%H}z'
+
+suite: !Cycle
+  fam: !Family
+    job1: !Task
+      tslot: !OutputSlot { Loc: !expand '{doc.com_pre}.t' }
+      oslot: !OutputSlot { Loc: !expand '{doc.com_pre}.o' }
+    job2: !Task
+      islot: !InputSlot { Out: !Message "up.job1.oslot.at('-6:00')" }
+      tslot: !InputSlot
+        Out: !Message up.job1.tslot.at("-6:00")
+        why: true
+        when: clock.now
+      oslot: !OutputSlot
+        Loc: !calc doc.com_pre+"{letter}{slotnum}"
+        letter: [ A, B ]
+        slotnum: [ 1, 2, 3 ]
+    job3: !Task
+      islot: !InputSlot
+        Out: !Message up.job2.oslot.at('-6:00')(letter=letter,slotnum=plopnum)
+        letter: [ A, B ]
+        plopnum: [ 1, 2, 3 ]

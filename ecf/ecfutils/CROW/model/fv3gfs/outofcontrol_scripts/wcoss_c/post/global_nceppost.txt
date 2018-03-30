@@ -1,0 +1,1 @@
+STGPSH=/gpfs/hps3/emc/global/noscrub/emc.glopara/svn/post/tags/ncep_post.v7.7.2/ush/global_nceppost.sh

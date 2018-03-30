@@ -1,0 +1,49 @@
+prep: &prep_base !Action
+  <<: *action_base
+  J_JOB: prep
+  walltime: !timedelta 01:00:00
+  resources: !calc run_prep.resources
+  memory: !calc run_prep.memory
+
+  CASE_ENKF: !calc doc.fv3_enkf_settings.CASE
+  Template: null
+
+  NMEM_ENKF: !calc doc.data_assimilation.NMEM_ENKF
+
+  POE: !calc doc.platform.name=='WCOSS_C'
+  PSLOT: !calc doc.case.experiment_name
+  VERBOSE: YES
+  WRITE_NEMSIOFILE: YES
+
+  PARALLEL: YES
+  BACK: YES
+  NPROCS: 4
+
+  # Variables to import in shell:
+  shell_vars: [ "[A-Z][A-Z0-9_]*$", "sys_tp", "HOMEobs.*", "l.*4d.*" ]
+
+prep_gdas: &prep_gdas_action !Action
+  <<: *prep_base
+  CDUMP: gdas
+  Inherit: !Inherit
+    - [ doc.fv3_gdas_settings, '.*' ]
+    - [ doc.data_assimilation, '.*' ]
+    - [ doc.prepbufr, '.*' ]
+    - [ doc.gfs_output_settings, "^FH.*|OUTPUT_GRID" ]
+    - [ doc.fv3_settings, "LEVS|QUILTING|WRITE_NEMSIOFILE|nst_anl" ]
+    - [ doc.case, "EDATE|SDATE|gfs_cyc|DO_RELOCATE|DO_MAKEPREPBUFR" ]
+    - [ doc.platform.mpi_tuning, '.*' ]
+  Template: null
+
+prep_gfs: &prep_gfs_action !Action
+  <<: *prep_base
+  CDUMP: gfs
+  Inherit: !Inherit
+    - [ doc.fv3_gfs_settings, '.*' ]
+    - [ doc.data_assimilation, '.*' ]
+    - [ doc.prepbufr, '.*' ]
+    - [ doc.gfs_output_settings, "^FH.*|OUTPUT_GRID" ]
+    - [ doc.fv3_settings, "LEVS|QUILTING|WRITE_NEMSIOFILE|nst_anl" ]
+    - [ doc.case, "EDATE|SDATE|gfs_cyc|DO_RELOCATE|DO_MAKEPREPBUFR" ]
+    - [ doc.platform.mpi_tuning, '.*' ]
+  Template: null

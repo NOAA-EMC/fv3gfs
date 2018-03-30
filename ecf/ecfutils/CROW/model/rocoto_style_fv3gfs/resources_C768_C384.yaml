@@ -1,0 +1,161 @@
+resources:
+
+  run_test: !JobRequest
+    - exe: nothing
+      mpi_ranks: 1
+
+  # From if[[...ecen]] block in config.resources:
+  run_ecen: !JobRequest
+    - memory: "3072M" 
+      walltime: 00:02:00
+      mpi_ranks: 80
+      exe: placeholder
+          # max_ppn comes from THEIA.env: 84/12 = 7
+      max_ppn: 4
+      OMP_NUM_THREADS: 2
+
+  run_chgres: !JobRequest
+    - exe: time
+      OMP_NUM_THREADS: 12
+      args:
+        - placeholder
+
+  run_nothing: !JobRequest # Special placeholder for "do nothing"
+    - memory: "300M"
+      walltime: 00:05:00
+      exe: nothing
+
+  run_eobs: !JobRequest
+    - memory: "3072M" 
+      walltime: 00:02:00
+      mpi_ranks: !calc 12*6
+      exe: placeholder
+      max_ppn: 6
+      OMP_NUM_THREADS: 4
+
+  run_eomg: !JobRequest
+    - memory: "3072M"
+      walltime: 00:02:00
+      mpi_ranks: !calc 6*12
+      exe: placeholder
+      max_ppn: 6
+      OMP_NUM_THREADS: 2
+
+  run_eupd: !JobRequest
+    - memory: "3072M" 
+      walltime: 00:02:00
+      mpi_ranks: !calc 20*12
+      exe: placeholder
+      max_ppn: 6
+      OMP_NUM_THREADS: 2
+
+#  run_enkf: !JobRequest
+#    pi_ranks: !calc 10*12
+#    resources:  !JobRequest
+#      - exe: placeholder
+#        max_ppn: 12
+#        OMP_NUM_THREADS: 4
+
+  run_efcs: !JobRequest
+    - walltime: 00:02:00
+      mpi_ranks: !calc "doc.settings.layout_x*doc.settings.layout_y*6"
+      max_ppn: 12
+      memory: "254M"
+
+  run_epos: !JobRequest
+    - memory: "254M"
+      mpi_ranks: 80
+      walltime: 00:02:00
+      exe: placeholder
+      max_ppn: 4
+      OMP_NUM_THREADS: 2
+
+  run_prep: !JobRequest
+    - memory: "3072M"
+      walltime: 00:02:00
+      mpi_ranks: 6
+      exe: placeholder
+      max_ppn: 2
+      OMP_NUM_THREADS: max
+
+  run_anal: !JobRequest
+    - memory: "3072M" 
+      mpi_ranks: 360
+      walltime: 00:02:00
+      exe: placeholder
+      max_ppn: 6
+      OMP_NUM_THREADS: 2
+
+#  run_gsi: !JobRequest
+#    pi_ranks: !calc 24*6
+#    resources:  !JobRequest
+#      - exe: placeholder
+#        max_ppn: 6
+#        OMP_NUM_THREADS: 4
+
+  run_gdasfcst: !JobRequest
+    - mpi_ranks: !calc "doc.settings.layout_x*doc.settings.layout_y*6"
+      walltime: 00:02:00
+      max_ppn: 12
+      memory: "1024M"
+
+  run_gfsfcst: !JobRequest
+    - mpi_ranks: !calc "doc.settings.layout_x*doc.settings.layout_y*6"
+      walltime: 00:02:00
+      max_ppn: 12
+      memory: "1024M"
+
+  run_gdaspost: !JobRequest
+    - memory: "3072M"
+      mpi_ranks: 72
+      walltime: 00:02:00
+      exe: placeholder
+      max_ppn: 12
+      OMP_NUM_THREADS: 1
+
+  run_gfspost: !JobRequest
+    - memory: "3072M"
+      mpi_ranks: 72
+      walltime: 00:02:00
+      exe: placeholder
+      max_ppn: 12
+      OMP_NUM_THREADS: 1
+
+  run_vrfy: !JobRequest
+    - memory: "3072M" 
+      mpi_ranks: 1
+      walltime: 00:02:00
+      exe: placeholder
+      max_ppn: 1
+      OMP_NUM_THREADS: 2
+
+  run_arch: !JobRequest
+    - memory: "3072M"
+      exclusive: false
+      mpi_ranks: 1
+      walltime: 00:02:00
+      exe: placeholder
+      max_ppn: 1
+      OMP_NUM_THREADS: 2
+
+  run_final: !JobRequest
+    - memory: "2M"
+      mpi_ranks: 1
+      walltime: 00:01:00
+      exe: placeholder
+      max_ppn: 1
+      OMP_NUM_THREADS: 2
+
+#  run_earc: !JobRequest
+#    emory: "3072M"
+#    mpi_ranks: 1
+#    walltime: 00:15:00
+#    resources:  !JobRequest
+#      - exe: placeholder
+#        max_ppn: 1
+#        OMP_NUM_THREADS: 2
+
+  run_fv3ic: !JobRequest
+    - memory: "3072M" 
+      mpi_ranks: 24
+      exe: placeholder

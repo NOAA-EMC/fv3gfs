@@ -1,0 +1,46 @@
+data_assimilation_template: !Template &data_assimilation_template
+  DOHYBVAR:
+    type: bool
+    default: YES
+    description: flag (YES or NO) for hybrid ensemble variational option
+  NMEM_ENKF:
+    type: int
+    default: 80
+    allowed: [ 10, 20, 30, 40, 50, 60, 70, 80 ]
+    description: Number of members of the GFS ENKF ensemble.
+  NMEM_ENKF_GRP_EOMN:   { type: int,      default: 10,   allowed: [ 10 ] }
+  NMEM_ENKF_GRP_EFMN:   { type: int,      default: 10,   allowed: [ 10 ] }
+  RECENTER_ENKF:        { type: bool,     default: YES }
+  SMOOTH_ENKF:          { type: bool,     default: YES }
+  assim_freq:
+    type: int
+    default: 6
+  l4densvar:
+    type: string
+    allowed: [ '.true.', '.false.' ]
+    default: '.false.'
+  lwrite4danl:
+    type: string
+    allowed: [ '.true.', '.false.' ]
+    default: '.false.'
+
+  DO_MAKEPREPBUFR:
+    type: bool
+    default: YES
+    description: If NO, will copy prepbufr from globaldump.  Otherwise, generates prepbufr file anew.
+
+  OBSINPUT_INVOBS: 
+    type: string
+    default: "dmesh(1)=225.0,dmesh(2)=225.0"
+  OBSQC_INVOBS:
+    type: string
+    default: "tcp_width=60.0,tcp_ermin=2.0,tcp_ermax=12.0"
+  RERUN_EOMGGRP: 
+    type: bool
+    default: YES
+
+
+# These variable largely eliminate the need for explicitly setting
+# USH directories, FIX files, PARM files, EXECutables below
+# The USER can overwrite components that they wish
+# e.g. PRVT is used from the GSI

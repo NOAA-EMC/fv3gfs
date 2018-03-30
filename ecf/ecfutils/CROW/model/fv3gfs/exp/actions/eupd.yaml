@@ -1,0 +1,28 @@
+eupd: &eupd_action !Action
+  <<: *action_base
+  J_JOB: eupd
+  ANALYSISSH: !expand "{doc.places.BASE_GSI}/scripts/exglobal_analysis_fv3gfs.sh.ecf"
+  APRUN_ENKF: !calc |
+    tools.command_without_exe(
+      par,enkf_resources,'placeholder')
+  ATARDIR: "/NCEPDEV/emc-global/1year/Samuel.Trahan/THEIA/scratch/wham"
+  walltime: !timedelta 00:15:00
+  enkf_resources: !calc run_enkf.resources
+  eupd_resources: !calc run_eupd.resources
+  resources: !calc run_eupd.resources
+  memory: !calc run_eupd.memory
+  shell_vars: [ "[A-Z][A-Z0-9_]*$", "assim_freq", "l.*4d.*" ]
+
+  Inherit: !Inherit
+    - [ doc.gfs_output_settings, "^FH.*|OUTPUT_GRID" ]
+    - [ doc.fv3_enkf_settings, "FHCYC" ]
+    - [ doc.data_assimilation, ".*" ]
+    - [ doc.fv3_settings, "LEVS|QUILTING|WRITE_NEMSIOFILE|nst_anl" ]
+    - [ doc.case, "EDATE|SDATE|gfs_cyc" ]
+  CDUMP: gdas
+  ENKFUPDSH: !calc doc.places.ENKFUPDSH
+  CASE: !calc doc.fv3_enkf_settings.CASE
+  NTHREADS_ENKF: 2
+  NTHSTACK: 1024000000
+  VERBOSE: YES
+  WRITE_NEMSIOFILE: YES

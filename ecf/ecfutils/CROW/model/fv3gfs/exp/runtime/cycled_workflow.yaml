@@ -1,0 +1,427 @@
+cycled_workflow: !Cycle
+  Rocoto: *Rocoto
+
+  Clock: *clock
+
+  gdas: !Family
+    prep: !Task
+      Perform: *prep_gdas_action
+      Rocoto: *task_template  
+      Complete: !Depend ~ suite.has_cycle('-6:00:00') 
+      Trigger: !Depend  up.gdas.post.at('-6:00:00')
+
+    enkf: !Family
+      eobs: !Task
+        Perform:  *eobs_action
+        Rocoto: *task_template
+        Complete: !Depend ~ suite.has_cycle('-6:00:00')
+        Trigger: !Depend  ( up.prep & epos.at('-6:00:00') )
+
+      eomg: !Family
+        Trigger: !Depend eobs
+        Complete: !Depend ~ suite.has_cycle('-6:00:00')
+        grp1: !Task
+          Perform:  
+            <<: *eomg_action
+            NMEM_ENKF: !calc doc.data_assimilation.NMEM_ENKF
+            NMEM_ENKF_GRP_EOMN: !calc doc.data_assimilation.NMEM_ENKF_GRP_EOMN
+            GROUP_NUMBER: 1   # Convert to ENSGRP %02d
+          task_template: *task_template
+          ens_more: *eomn_task_template
+          Rocoto: !expand "{task_template}{ens_more}"
+
+        grp2: !FirstTrue
+          - when: !calc doc.data_assimilation.NMEM_ENKF==20
+            do: !Task
+              Perform:
+                <<: *eomg_action
+                NMEM_ENKF: !calc doc.data_assimilation.NMEM_ENKF
+                NMEM_ENKF_GRP_EOMN: !calc doc.data_assimilation.NMEM_ENKF_GRP_EOMN
+                GROUP_NUMBER: 2   # Convert to ENSGRP %02d
+              task_template: *task_template
+              ens_more: *eomn_task_template
+              Rocoto: !expand "{task_template}{ens_more}"
+          - otherwise: null
+
+        grp3: !FirstTrue
+          - when: !calc doc.data_assimilation.NMEM_ENKF==30
+            do: !Task
+              Perform:
+                <<: *eomg_action
+                NMEM_ENKF: !calc doc.data_assimilation.NMEM_ENKF
+                NMEM_ENKF_GRP_EOMN: !calc doc.data_assimilation.NMEM_ENKF_GRP_EOMN
+                GROUP_NUMBER: 3   # Convert to ENSGRP %02d
+              task_template: *task_template
+              ens_more: *eomn_task_template
+              Rocoto: !expand "{task_template}{ens_more}"
+          - otherwise: null
+
+        grp4: !FirstTrue
+          - when: !calc doc.data_assimilation.NMEM_ENKF==40
+            do: !Task
+              Perform:
+                <<: *eomg_action
+                NMEM_ENKF: !calc doc.data_assimilation.NMEM_ENKF
+                NMEM_ENKF_GRP_EOMN: !calc doc.data_assimilation.NMEM_ENKF_GRP_EOMN
+                GROUP_NUMBER: 4   # Convert to ENSGRP %02d
+              task_template: *task_template
+              ens_more: *eomn_task_template
+              Rocoto: !expand "{task_template}{ens_more}"
+          - otherwise: null
+
+        grp5: !FirstTrue
+          - when: !calc doc.data_assimilation.NMEM_ENKF==50
+            do: !Task
+              Perform:
+                <<: *eomg_action
+                NMEM_ENKF: !calc doc.data_assimilation.NMEM_ENKF
+                NMEM_ENKF_GRP_EOMN: !calc doc.data_assimilation.NMEM_ENKF_GRP_EOMN
+                GROUP_NUMBER: 5   # Convert to ENSGRP %02d
+              task_template: *task_template
+              ens_more: *eomn_task_template
+              Rocoto: !expand "{task_template}{ens_more}"
+          - otherwise: null
+
+        grp6: !FirstTrue
+          - when: !calc doc.data_assimilation.NMEM_ENKF==60
+            do: !Task
+              Perform:
+                <<: *eomg_action
+                NMEM_ENKF: !calc doc.data_assimilation.NMEM_ENKF
+                NMEM_ENKF_GRP_EOMN: !calc doc.data_assimilation.NMEM_ENKF_GRP_EOMN
+                GROUP_NUMBER: 6   # Convert to ENSGRP %02d
+              task_template: *task_template
+              ens_more: *eomn_task_template
+              Rocoto: !expand "{task_template}{ens_more}"
+          - otherwise: null
+
+        grp7: !FirstTrue
+          - when: !calc doc.data_assimilation.NMEM_ENKF==70
+            do: !Task
+              Perform:
+                <<: *eomg_action
+                NMEM_ENKF: !calc doc.data_assimilation.NMEM_ENKF
+                NMEM_ENKF_GRP_EOMN: !calc doc.data_assimilation.NMEM_ENKF_GRP_EOMN
+                GROUP_NUMBER: 7   # Convert to ENSGRP %02d
+              task_template: *task_template
+              ens_more: *eomn_task_template
+              Rocoto: !expand "{task_template}{ens_more}"
+          - otherwise: null
+
+        grp8: !FirstTrue
+          - when: !calc doc.data_assimilation.NMEM_ENKF==80
+            do: !Task
+              Perform:
+                <<: *eomg_action
+                NMEM_ENKF: !calc doc.data_assimilation.NMEM_ENKF
+                NMEM_ENKF_GRP_EOMN: !calc doc.data_assimilation.NMEM_ENKF_GRP_EOMN
+                GROUP_NUMBER: 8   # Convert to ENSGRP %02d
+              task_template: *task_template
+              ens_more: *eomn_task_template
+              Rocoto: !expand "{task_template}{ens_more}"
+          - otherwise: null
+
+      eupd: !Task
+        Perform:  *eupd_action
+        Rocoto: *task_template
+        Complete: !Depend ~ suite.has_cycle('-6:00:00')
+        Trigger: !Depend eomg
+
+      ecen: !Task
+        Perform:  *ecen_action
+        Rocoto: *task_template
+        Complete: !Depend ~ suite.has_cycle('-6:00:00')
+        Trigger: !Depend ( eupd & up.anal )
+
+#      efcs: !TaskArray
+#        Trigger: !Depend ecen
+#        Indices:
+#          GROUP_NUMBER_INDEX: [ 1, 2, 3, 4, 5, 6, 7, 8 ]
+#          OTHER_INDEX: [ a, b, c, d ]
+#        Names: 
+#          grp: !expand grp{indices.GROUP_NUMBER_INDEX:%d}_{indices.OTHER_INDEX}
+#          other: !expand other{indices.OTHER_INDEX}_{indices.GROUP_NUMBER_INDEX}
+#        Contents:
+#          other: !Task
+#            ...
+#          grp: !Task 
+#            Perform:  
+#              <<: *efcs_action
+#              NMEM_ENKF: *NMEM_ENKF
+#              NMEM_ENKF_GRP_EFMN: *NMEM_ENKF_GRP_EFMN
+#              GROUP_NUMBER: !calc indices.GROUP_NUMBER_INDEX   # Convert to ENSGRP %02d
+#            task_template: *task_template
+#            ens_more: *ens_task_template
+#            Rocoto: !expand "{task_template}{ens_more}"
+
+      efcs: !Family
+        Trigger: !Depend ( ecen | ~ suite.has_cycle('-6:00:00') )
+        grp1: !Task 
+          Perform:  
+            <<: *efcs_action
+            NMEM_ENKF: !calc doc.data_assimilation.NMEM_ENKF
+            NMEM_ENKF_GRP_EFMN: !calc doc.data_assimilation.NMEM_ENKF_GRP_EFMN
+            GROUP_NUMBER: 1   # Convert to ENSGRP %02d
+          task_template: *task_template
+          ens_more: *efcs_task_template
+          Rocoto: !expand "{task_template}{ens_more}"
+
+        grp2: !FirstTrue
+          - when: !calc doc.data_assimilation.NMEM_ENKF==20
+            do: !Task
+              Perform:
+                <<: *efcs_action
+                NMEM_ENKF: !calc doc.data_assimilation.NMEM_ENKF
+                NMEM_ENKF_GRP_EFMN: !calc doc.data_assimilation.NMEM_ENKF_GRP_EFMN
+                GROUP_NUMBER: 2   # Convert to ENSGRP %02d
+              task_template: *task_template
+              ens_more: *efcs_task_template
+              Rocoto: !expand "{task_template}{ens_more}"
+          - otherwise: null
+
+        grp3: !FirstTrue
+          - when: !calc doc.data_assimilation.NMEM_ENKF==30
+            do: !Task
+              Perform:
+                <<: *efcs_action
+                NMEM_ENKF: !calc doc.data_assimilation.NMEM_ENKF
+                NMEM_ENKF_GRP_EFMN: !calc doc.data_assimilation.NMEM_ENKF_GRP_EFMN
+                GROUP_NUMBER: 3   # Convert to ENSGRP %02d
+              task_template: *task_template
+              ens_more: *efcs_task_template
+              Rocoto: !expand "{task_template}{ens_more}"
+          - otherwise: null
+
+        grp4: !FirstTrue
+          - when: !calc doc.data_assimilation.NMEM_ENKF==40
+            do: !Task
+              Perform:
+                <<: *efcs_action
+                NMEM_ENKF: !calc doc.data_assimilation.NMEM_ENKF
+                NMEM_ENKF_GRP_EFMN: !calc doc.data_assimilation.NMEM_ENKF_GRP_EFMN
+                GROUP_NUMBER: 4   # Convert to ENSGRP %02d
+              task_template: *task_template
+              ens_more: *efcs_task_template
+              Rocoto: !expand "{task_template}{ens_more}"
+          - otherwise: null
+
+        grp5: !FirstTrue
+          - when: !calc doc.data_assimilation.NMEM_ENKF==50
+            do: !Task
+              Perform:
+                <<: *efcs_action
+                NMEM_ENKF: !calc doc.data_assimilation.NMEM_ENKF
+                NMEM_ENKF_GRP_EFMN: !calc doc.data_assimilation.NMEM_ENKF_GRP_EFMN
+                GROUP_NUMBER: 5   # Convert to ENSGRP %02d
+              task_template: *task_template
+              ens_more: *efcs_task_template
+              Rocoto: !expand "{task_template}{ens_more}"
+          - otherwise: null
+
+        grp6: !FirstTrue
+          - when: !calc doc.data_assimilation.NMEM_ENKF==60
+            do: !Task
+              Perform:
+                <<: *efcs_action
+                NMEM_ENKF: !calc doc.data_assimilation.NMEM_ENKF
+                NMEM_ENKF_GRP_EFMN: !calc doc.data_assimilation.NMEM_ENKF_GRP_EFMN
+                GROUP_NUMBER: 6   # Convert to ENSGRP %02d
+              task_template: *task_template
+              ens_more: *efcs_task_template
+              Rocoto: !expand "{task_template}{ens_more}"
+          - otherwise: null
+
+        grp7: !FirstTrue
+          - when: !calc doc.data_assimilation.NMEM_ENKF==70
+            do: !Task
+              Perform:
+                <<: *efcs_action
+                NMEM_ENKF: !calc doc.data_assimilation.NMEM_ENKF
+                NMEM_ENKF_GRP_EFMN: !calc doc.data_assimilation.NMEM_ENKF_GRP_EFMN
+                GROUP_NUMBER: 7   # Convert to ENSGRP %02d
+              task_template: *task_template
+              ens_more: *efcs_task_template
+              Rocoto: !expand "{task_template}{ens_more}"
+          - otherwise: null
+
+        grp8: !FirstTrue
+          - when: !calc doc.data_assimilation.NMEM_ENKF==80
+            do: !Task
+              Perform:
+                <<: *efcs_action
+                NMEM_ENKF: !calc doc.data_assimilation.NMEM_ENKF
+                NMEM_ENKF_GRP_EFMN: !calc doc.data_assimilation.NMEM_ENKF_GRP_EFMN
+                GROUP_NUMBER: 8   # Convert to ENSGRP %02d
+              task_template: *task_template
+              ens_more: *efcs_task_template
+              Rocoto: !expand "{task_template}{ens_more}"
+          - otherwise: null
+
+      epos: !Task
+        Perform:  *epos_action        
+        Rocoto: *task_template
+        Trigger: !Depend efcs
+
+    anal: !Task
+      Perform: *anal_gdas_action
+      Rocoto: *task_template
+      Complete: !Depend ~ suite.has_cycle('-6:00:00')
+      Trigger: !Depend  ( prep & enkf.epos.at('-6:00:00') )
+
+    fcst: !Task
+      Perform: *fcst_gdas_action
+      Rocoto: *task_template
+      Trigger: !Depend ( anal | ~ suite.has_cycle('-6:00:00') )
+
+    post: !Task
+      Perform: *post_gdas_action
+      Rocoto: *task_template
+      Trigger: !Depend fcst
+
+    vrfy: !Task
+      Perform: *vrfy_gdas_action
+      Rocoto: *task_template
+      Trigger: !Depend post
+
+  gfs: !Family
+    Complete: !Depend ~ suite.has_cycle('-6:00:00')
+    prep: !Task
+      Perform: *prep_gfs_action
+      Rocoto: *task_template
+      Trigger: !Depend  up.gdas.post.at('-6:00:00')
+
+    anal: !Task
+      Perform: *anal_gfs_action
+      Rocoto: *task_template
+      Trigger: !Depend  ( prep & up.gdas.enkf.epos.at('-6:00:00') )
+
+    fcst: !Task
+      Perform: *fcst_gfs_action
+      Rocoto: *task_template
+      Trigger: !Depend anal
+
+    post: !Task
+      Perform: *post_gfs_action
+      Rocoto: *task_template
+      Trigger: !Depend fcst
+    
+    vrfy: !Task
+      Perform: *vrfy_gfs_action
+      Rocoto: *task_template
+      Trigger: !Depend post
+
+  archive: !Family
+    gdasarch: !Task
+      Perform:
+        <<: *arch_gdas_action
+        CDUMP: gdas
+      Rocoto: *task_template
+      Trigger: !Depend up.gdas.vrfy
+
+    gfsarch: !Task
+      Perform:
+        <<: *arch_gfs_action
+        CDUMP: gfs
+      Rocoto: *task_template
+      Complete: !Depend ~ suite.has_cycle('-6:00:00')
+      Trigger: !Depend up.gfs.vrfy
+
+    earc: !Family
+      Trigger: !Depend up.gdas.enkf.epos
+      grp1: !Task
+        Perform:  
+          <<: *earc_action
+          NMEM_ENKF: !calc doc.data_assimilation.NMEM_ENKF
+          NMEM_ENKF_GRP_EOMN: !calc doc.data_assimilation.NMEM_ENKF_GRP_EOMN
+          GROUP_NUMBER: 1   # Convert to ENSGRP %02d
+        task_template: *task_template
+        ens_more: *eomn_task_template
+        Rocoto: !expand "{task_template}{ens_more}"
+      grp2: !FirstTrue
+        - when: !calc doc.data_assimilation.NMEM_ENKF==20
+          do: !Task
+            Perform:
+              <<: *earc_action
+              NMEM_ENKF: !calc doc.data_assimilation.NMEM_ENKF
+              NMEM_ENKF_GRP_EOMN: !calc doc.data_assimilation.NMEM_ENKF_GRP_EOMN
+              GROUP_NUMBER: 2   # Convert to ENSGRP %02d
+            task_template: *task_template
+            ens_more: *eomn_task_template
+            Rocoto: !expand "{task_template}{ens_more}"
+        - otherwise: null
+      grp3: !FirstTrue
+        - when: !calc doc.data_assimilation.NMEM_ENKF==30
+          do: !Task
+            Perform:
+              <<: *earc_action
+              NMEM_ENKF: !calc doc.data_assimilation.NMEM_ENKF
+              NMEM_ENKF_GRP_EOMN: !calc doc.data_assimilation.NMEM_ENKF_GRP_EOMN
+              GROUP_NUMBER: 3   # Convert to ENSGRP %02d
+            task_template: *task_template
+            ens_more: *eomn_task_template
+            Rocoto: !expand "{task_template}{ens_more}"
+        - otherwise: null
+      grp4: !FirstTrue
+        - when: !calc doc.data_assimilation.NMEM_ENKF==40
+          do: !Task
+            Perform:
+              <<: *earc_action
+              NMEM_ENKF: !calc doc.data_assimilation.NMEM_ENKF
+              NMEM_ENKF_GRP_EOMN: !calc doc.data_assimilation.NMEM_ENKF_GRP_EOMN
+              GROUP_NUMBER: 4   # Convert to ENSGRP %02d
+            task_template: *task_template
+            ens_more: *eomn_task_template
+            Rocoto: !expand "{task_template}{ens_more}"
+        - otherwise: null
+      grp5: !FirstTrue
+        - when: !calc doc.data_assimilation.NMEM_ENKF==50
+          do: !Task
+            Perform:
+              <<: *earc_action
+              NMEM_ENKF: !calc doc.data_assimilation.NMEM_ENKF
+              NMEM_ENKF_GRP_EOMN: !calc doc.data_assimilation.NMEM_ENKF_GRP_EOMN
+              GROUP_NUMBER: 5   # Convert to ENSGRP %02d
+            task_template: *task_template
+            ens_more: *eomn_task_template
+            Rocoto: !expand "{task_template}{ens_more}"
+        - otherwise: null
+      grp6: !FirstTrue
+        - when: !calc doc.data_assimilation.NMEM_ENKF==60
+          do: !Task
+            Perform:
+              <<: *earc_action
+              NMEM_ENKF: !calc doc.data_assimilation.NMEM_ENKF
+              NMEM_ENKF_GRP_EOMN: !calc doc.data_assimilation.NMEM_ENKF_GRP_EOMN
+              GROUP_NUMBER: 6   # Convert to ENSGRP %02d
+            task_template: *task_template
+            ens_more: *eomn_task_template
+            Rocoto: !expand "{task_template}{ens_more}"
+        - otherwise: null
+      grp7: !FirstTrue
+        - when: !calc doc.data_assimilation.NMEM_ENKF==70
+          do: !Task
+            Perform:
+              <<: *earc_action
+              NMEM_ENKF: !calc doc.data_assimilation.NMEM_ENKF
+              NMEM_ENKF_GRP_EOMN: !calc doc.data_assimilation.NMEM_ENKF_GRP_EOMN
+              GROUP_NUMBER: 7   # Convert to ENSGRP %02d
+            task_template: *task_template
+            ens_more: *eomn_task_template
+            Rocoto: !expand "{task_template}{ens_more}"
+        - otherwise: null
+      grp8: !FirstTrue
+        - when: !calc doc.data_assimilation.NMEM_ENKF==80
+          do: !Task
+            Perform:
+              <<: *earc_action
+              NMEM_ENKF: !calc doc.data_assimilation.NMEM_ENKF
+              NMEM_ENKF_GRP_EOMN: !calc doc.data_assimilation.NMEM_ENKF_GRP_EOMN
+              GROUP_NUMBER: 8   # Convert to ENSGRP %02d
+            task_template: *task_template
+            ens_more: *eomn_task_template
+            Rocoto: !expand "{task_template}{ens_more}"
+        - otherwise: null
+
+  final: !Task
+    Perform: *final_action
+    Rocoto: *task_template

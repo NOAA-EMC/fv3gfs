@@ -1,0 +1,1 @@
+VSDBSH=/gpfs/hps3/emc/global/noscrub/emc.glopara/svn/verif/global/tags/vsdb/vsdbjob.sh

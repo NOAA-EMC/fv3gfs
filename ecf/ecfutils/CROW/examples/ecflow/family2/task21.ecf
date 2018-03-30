@@ -1,0 +1,12 @@
+#! /bin/sh
+#BSUB -q %QUEUE%
+#BSUB -P GFS-T2O
+#BSUB -J family2.task21
+#BSUB -o /ptmp/%U/family2.task21
+#BSUB -W 0:05
+#BSUB -R rusage[mem=2000]
+#BSUB -extsched CRAYLINUX[]
+export NODES=3
+%include <head.h>
+echo ${JOBgfs}/JGFS_TASK21
+%include <tail.h>
