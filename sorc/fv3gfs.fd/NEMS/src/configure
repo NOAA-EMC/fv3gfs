@@ -132,7 +132,7 @@ case "$CONF_OPTION" in
 esac
 
 if [[ -z "$CHOSEN_MODULE" ]] ; then
-    cat<<EOF > modules.empty
+    cat<<EOF > ../../modulefiles/modules.empty
 #%Module######################################################################
 # Empty module file for coupled_linux_gnu configuration.
 EOF
